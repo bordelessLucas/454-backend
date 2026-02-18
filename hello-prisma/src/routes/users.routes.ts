@@ -1,28 +1,17 @@
 import { Router } from "express";
-import { prisma } from "../lib/prisma.js";
+import { AuthController } from "../controllers/auth.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { roleMiddleware } from "../middlewares/role.middleware.js";
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
-});
+router.use(authMiddleware);
+router.use(roleMiddleware("ADMIN"));
 
-router.post("/", async (req, res) => {
-  const { email, name } = req.body as { email?: string; name?: string };
-
-  if (!email) {
-    return res.status(400).json({ error: "email is required" });
-  }
-
-  const user = await prisma.user.create({
-    data: {
-      email,
-      ...(name === undefined ? {} : { name }),
-    },
-  });
-
-  return res.status(201).json(user);
-});
+router.post("/", AuthController.createUser);
+router.get("/", AuthController.getUsers);
+router.get("/:id", AuthController.getUserById);
+router.put("/:id", AuthController.updateUser);
+router.delete("/:id", AuthController.deleteUser);
 
 export default router;

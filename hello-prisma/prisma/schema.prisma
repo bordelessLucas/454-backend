@@ -1,20 +1,209 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  ADMIN
+  TECNICO
+}
+
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  nome      String
+  email     String   @unique
+  role      Role     @default(TECNICO)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  relatorios Relatorio[]
+
+  @@map("users")
+}
+
+model RamoAtividade {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientes Cliente[]
+
+  @@map("ramos_atividade")
+}
+
+model Cliente {
+  id                Int      @id @default(autoincrement())
+  razaoSocial       String   @map("razao_social")
+  nomeFantasia      String   @map("nome_fantasia")
+  cnpj              String   @unique
+  inscricaoEstadual String?  @map("inscricao_estadual")
+  endereco          String
+  cidade            String
+  estado            String
+  cep               String
+  telefone          String?
+  email             String?
+  ramoAtividadeId   Int      @map("ramo_atividade_id")
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  ramoAtividade RamoAtividade    @relation(fields: [ramoAtividadeId], references: [id])
+  contatos      ClienteContato[]
+  contratos     Contrato[]
+  relatorios    Relatorio[]
+
+  @@map("clientes")
+}
+
+model ClienteContato {
+  id        Int      @id @default(autoincrement())
+  clienteId Int      @map("cliente_id")
+  nome      String
+  cargo     String?
+  telefone  String?
+  email     String?
+  principal Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cliente    Cliente     @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  relatorios Relatorio[]
+
+  @@map("cliente_contatos")
+}
+
+model Contrato {
+  id                Int       @id @default(autoincrement())
+  clienteId         Int       @map("cliente_id")
+  numeroContrato    String    @unique @map("numero_contrato")
+  dataInicio        DateTime  @map("data_inicio")
+  dataFim           DateTime? @map("data_fim")
+  valorMensal       Decimal   @map("valor_mensal") @db.Decimal(10, 2)
+  descricaoServicos String    @map("descricao_servicos") @db.Text
+  ativo             Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@map("contratos")
+}
+
+model Setor {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique
+  descricao String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  relatorioSetores RelatorioSetor[]
+
+  @@map("setores")
+}
+
+model Checklist {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique
+  descricao String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  relatorioChecklists RelatorioChecklist[]
+
+  @@map("checklist")
+}
+
+model Relatorio {
+  id          Int      @id @default(autoincrement())
+  clienteId   Int      @map("cliente_id")
+  contatoId   Int?     @map("contato_id")
+  criadoPorId Int      @map("criado_por_id")
+  dataVisita  DateTime @map("data_visita")
+  observacoes String?  @db.Text
+  impresso    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cliente   Cliente         @relation(fields: [clienteId], references: [id])
+  contato   ClienteContato? @relation(fields: [contatoId], references: [id])
+  criadoPor User            @relation(fields: [criadoPorId], references: [id])
+
+  tecnicos   RelatorioTecnico[]
+  setores    RelatorioSetor[]
+  horarios   RelatorioHorario?
+  checklists RelatorioChecklist[]
+
+  @@map("relatorios")
+}
+
+model RelatorioTecnico {
+  id          Int      @id @default(autoincrement())
+  relatorioId Int      @map("relatorio_id")
+  nome        String
+  createdAt   DateTime @default(now())
+
+  relatorio Relatorio @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
+
+  @@map("relatorio_tecnicos")
+}
+
+model RelatorioSetor {
+  id          Int      @id @default(autoincrement())
+  relatorioId Int      @map("relatorio_id")
+  setorId     Int      @map("setor_id")
+  observacao  String?
+  createdAt   DateTime @default(now())
+
+  relatorio Relatorio @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
+  setor     Setor     @relation(fields: [setorId], references: [id])
+
+  @@map("relatorio_setores")
+}
+
+model RelatorioHorario {
+  id          Int      @id @default(autoincrement())
+  relatorioId Int      @unique @map("relatorio_id")
+  horaChegada DateTime @map("hora_chegada")
+  horaSaida   DateTime @map("hora_saida")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  relatorio Relatorio @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
+
+  @@map("relatorio_horarios")
+}
+
+model RelatorioChecklist {
+  id          Int      @id @default(autoincrement())
+  relatorioId Int      @map("relatorio_id")
+  checklistId Int      @map("checklist_id")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  relatorio Relatorio @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
+  checklist Checklist @relation(fields: [checklistId], references: [id])
+
+  @@map("relatorio_checklists")
+}
+
+model Configuracao {
+  id         Int      @id @default(autoincrement())
+  dataInicio DateTime @map("data_inicio")
+  dataFim    DateTime @map("data_fim")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("configuracoes")
 }

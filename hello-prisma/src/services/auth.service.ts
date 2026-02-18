@@ -1,0 +1,123 @@
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import type { LoginDTO, CreateUserDTO, UpdateUserDTO } from "../types/dtos.js";
+
+const JWT_SECRET =
+  process.env["JWT_SECRET"] ?? "your-secret-key-change-in-production";
+const SALT_ROUNDS = 10;
+
+export class AuthService {
+  constructor(private prisma: PrismaClient) {}
+
+  async login(
+    data: LoginDTO,
+  ): Promise<{
+    token: string;
+    user: { id: number; username: string; nome: string; role: string };
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { username: data.username },
+    });
+
+    if (!user || !user.ativo) {
+      throw new Error("Credenciais inválidas");
+    }
+
+    const valid = await bcrypt.compare(data.password, user.password);
+
+    if (!valid) {
+      throw new Error("Credenciais inválidas");
+    }
+
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "8h" },
+    );
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        nome: user.nome,
+        role: user.role,
+      },
+    };
+  }
+
+  async createUser(data: CreateUserDTO) {
+    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+
+    return this.prisma.user.create({
+      data: {
+        username: data.username,
+        password: hashedPassword,
+        nome: data.nome,
+        email: data.email,
+        role: data.role,
+      },
+      select: {
+        id: true,
+        username: true,
+        nome: true,
+        email: true,
+        role: true,
+        ativo: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async getUsers() {
+    return this.prisma.user.findMany({
+      select: {
+        id: true,
+        username: true,
+        nome: true,
+        email: true,
+        role: true,
+        ativo: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async getUserById(id: number) {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        username: true,
+        nome: true,
+        email: true,
+        role: true,
+        ativo: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async updateUser(id: number, data: UpdateUserDTO) {
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        username: true,
+        nome: true,
+        email: true,
+        role: true,
+        ativo: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async deleteUser(id: number) {
+    return this.prisma.user.delete({
+      where: { id },
+    });
+  }
+}
