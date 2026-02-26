@@ -44,6 +44,15 @@ export class AuthController {
     }
   }
 
+  static async getUsersTecnico(_req: Request, res: Response): Promise<void> {
+    try {
+      const users = await authService.getUsersTecnico();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar técnicos" });
+    }
+  }
+
   static async getUserById(req: Request, res: Response): Promise<void> {
     try {
       const id = parseInt(req.params["id"] ?? "0");
@@ -90,6 +99,55 @@ export class AuthController {
           error:
             error instanceof Error ? error.message : "Erro ao deletar usuário",
         });
+    }
+  }
+
+  static async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { username, newPassword } = req.body;
+
+      if (!username || !newPassword) {
+        res.status(400).json({
+          error: "Username e nova senha são obrigatórios",
+        });
+        return;
+      }
+
+      const user = await authService.resetPassword(username, newPassword);
+      res.json({
+        message: "Senha resetada com sucesso",
+        user,
+      });
+    } catch (error) {
+      res.status(400).json({
+        error:
+          error instanceof Error ? error.message : "Erro ao resetar senha",
+      });
+    }
+  }
+
+  static async changePassword(req: Request, res: Response): Promise<void> {
+    try {
+      const id = parseInt(req.params["id"] ?? "0");
+      const { newPassword } = req.body;
+
+      if (!newPassword) {
+        res.status(400).json({
+          error: "Nova senha é obrigatória",
+        });
+        return;
+      }
+
+      const user = await authService.changePassword(id, newPassword);
+      res.json({
+        message: "Senha alterada com sucesso",
+        user,
+      });
+    } catch (error) {
+      res.status(400).json({
+        error:
+          error instanceof Error ? error.message : "Erro ao alterar senha",
+      });
     }
   }
 }

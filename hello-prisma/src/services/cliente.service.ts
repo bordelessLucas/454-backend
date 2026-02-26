@@ -9,11 +9,42 @@ export class ClienteService {
   constructor(private prisma: PrismaClient) {}
 
   async create(data: CreateClienteDTO) {
-    return this.prisma.cliente.create({
-      data,
-      include: {
-        ramoAtividade: true,
-      },
+    const { contato, contrato, ...clienteData } = data;
+
+    return this.prisma.$transaction(async (tx) => {
+      // Criar cliente
+      const cliente = await tx.cliente.create({
+        data: clienteData,
+        include: {
+          ramoAtividade: true,
+        },
+      });
+
+      // Criar contato associado
+      await tx.clienteContato.create({
+        data: {
+          clienteId: cliente.id,
+          ...contato,
+        },
+      });
+
+      // Criar contrato associado
+      await tx.contrato.create({
+        data: {
+          clienteId: cliente.id,
+          ...contrato,
+        },
+      });
+
+      // Retornar cliente com as relações
+      return tx.cliente.findUnique({
+        where: { id: cliente.id },
+        include: {
+          ramoAtividade: true,
+          contatos: true,
+          contratos: true,
+        },
+      });
     });
   }
 
@@ -40,6 +71,7 @@ export class ClienteService {
       include: {
         ramoAtividade: true,
         contatos: true,
+        contratos: true,
       },
       orderBy: { nomeFantasia: "asc" },
     });
@@ -57,12 +89,52 @@ export class ClienteService {
   }
 
   async update(id: number, data: UpdateClienteDTO) {
-    return this.prisma.cliente.update({
-      where: { id },
-      data,
-      include: {
-        ramoAtividade: true,
-      },
+    const { contato, contrato, ...clienteData } = data;
+
+    return this.prisma.$transaction(async (tx) => {
+      // Atualizar cliente
+      const cliente = await tx.cliente.update({
+        where: { id },
+        data: clienteData,
+      });
+
+      // Atualizar contato se fornecido
+      if (contato) {
+        const contatoExistente = await tx.clienteContato.findFirst({
+          where: { clienteId: id },
+        });
+
+        if (contatoExistente) {
+          await tx.clienteContato.update({
+            where: { id: contatoExistente.id },
+            data: contato,
+          });
+        }
+      }
+
+      // Atualizar contrato se fornecido
+      if (contrato) {
+        const contratoExistente = await tx.contrato.findFirst({
+          where: { clienteId: id },
+        });
+
+        if (contratoExistente) {
+          await tx.contrato.update({
+            where: { id: contratoExistente.id },
+            data: contrato,
+          });
+        }
+      }
+
+      // Retornar cliente com as relações
+      return tx.cliente.findUnique({
+        where: { id },
+        include: {
+          ramoAtividade: true,
+          contatos: true,
+          contratos: true,
+        },
+      });
     });
   }
 

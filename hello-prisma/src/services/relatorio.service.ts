@@ -5,16 +5,64 @@ import type {
   RelatorioFilters,
 } from "../types/dtos.js";
 
+// Helper: Combina data e hora para criar um DateTime válido
+function combinarDataHora(data: string, hora: string): Date {
+  // data: "2026-02-18", hora: "09:00"
+  // resultado: "2026-02-18T09:00:00"
+  return new Date(`${data}T${hora}:00`);
+}
+
+function parseHorario(dataVisita: string, horario: string): Date {
+  if (horario.includes("T")) {
+    const dateTime = new Date(horario);
+    if (Number.isNaN(dateTime.getTime())) {
+      throw new Error("Horario invalido (ISO 8601)");
+    }
+    return dateTime;
+  }
+
+  const baseDate = dataVisita.split("T")[0];
+  const dateTime = combinarDataHora(baseDate, horario);
+  if (Number.isNaN(dateTime.getTime())) {
+    throw new Error("Horario invalido (HH:mm)");
+  }
+  return dateTime;
+}
+
+const MODALIDADES_SERVICO = [
+  "Sem contrato - remoto",
+  "Sem contrato - local",
+  "Contrato - local",
+  "Contrato - remoto",
+] as const;
+
+function validarModalidadeServico(modalidade?: string): void {
+  if (!modalidade) {
+    return;
+  }
+
+  if (
+    !MODALIDADES_SERVICO.includes(
+      modalidade as (typeof MODALIDADES_SERVICO)[number],
+    )
+  ) {
+    throw new Error("Modalidade de servico invalida");
+  }
+}
+
 export class RelatorioService {
   constructor(private prisma: PrismaClient) {}
 
   async create(data: CreateRelatorioDTO, criadoPorId: number) {
     return this.prisma.$transaction(async (tx) => {
       // ✅ construir objeto dinamicamente (sem undefined)
+      validarModalidadeServico(data.modalidadeServico);
+
       const relatorioData: Prisma.RelatorioUncheckedCreateInput = {
         clienteId: data.clienteId,
         criadoPorId,
         dataVisita: new Date(data.dataVisita),
+        modalidadeServico: data.modalidadeServico,
       };
 
       if (data.contatoId !== undefined) {
@@ -62,15 +110,15 @@ export class RelatorioService {
       }
 
       // horários
-      if (data.horarios) {
-        const horarioData: Prisma.RelatorioHorarioUncheckedCreateInput = {
-          relatorioId: relatorio.id,
-          horaChegada: new Date(data.horarios.horaChegada),
-          horaSaida: new Date(data.horarios.horaSaida),
-        };
-
-        await tx.relatorioHorario.create({
-          data: horarioData,
+      if (data.horarios && data.horarios.length > 0) {
+        await tx.relatorioHorario.createMany({
+          data: data.horarios.map(
+            (horario): Prisma.RelatorioHorarioCreateManyInput => ({
+              relatorioId: relatorio.id,
+              horaChegada: parseHorario(data.dataVisita, horario.horaChegada),
+              horaSaida: parseHorario(data.dataVisita, horario.horaSaida),
+            }),
+          ),
         });
       }
 
@@ -213,6 +261,11 @@ export class RelatorioService {
         updateData.dataVisita = new Date(data.dataVisita);
       }
 
+      if (data.modalidadeServico !== undefined) {
+        validarModalidadeServico(data.modalidadeServico);
+        updateData.modalidadeServico = data.modalidadeServico;
+      }
+
       if (data.observacoes !== undefined) {
         updateData.observacoes = data.observacoes;
       }
@@ -276,15 +329,23 @@ export class RelatorioService {
           where: { relatorioId: id },
         });
 
-        const horarioData: Prisma.RelatorioHorarioUncheckedCreateInput = {
-          relatorioId: id,
-          horaChegada: new Date(data.horarios.horaChegada),
-          horaSaida: new Date(data.horarios.horaSaida),
-        };
-
-        await tx.relatorioHorario.create({
-          data: horarioData,
-        });
+        if (data.horarios.length > 0) {
+          await tx.relatorioHorario.createMany({
+            data: data.horarios.map(
+              (horario): Prisma.RelatorioHorarioCreateManyInput => ({
+                relatorioId: id,
+                horaChegada: parseHorario(
+                  updated.dataVisita.toISOString(),
+                  horario.horaChegada,
+                ),
+                horaSaida: parseHorario(
+                  updated.dataVisita.toISOString(),
+                  horario.horaSaida,
+                ),
+              }),
+            ),
+          });
+        }
       }
 
       // checklists

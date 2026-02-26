@@ -10,9 +10,7 @@ const SALT_ROUNDS = 10;
 export class AuthService {
   constructor(private prisma: PrismaClient) {}
 
-  async login(
-    data: LoginDTO,
-  ): Promise<{
+  async login(data: LoginDTO): Promise<{
     token: string;
     user: { id: number; username: string; nome: string; role: string };
   }> {
@@ -57,6 +55,7 @@ export class AuthService {
         nome: data.nome,
         email: data.email,
         role: data.role,
+        clienteId: data.clienteId,
       },
       select: {
         id: true,
@@ -64,6 +63,7 @@ export class AuthService {
         nome: true,
         email: true,
         role: true,
+        clienteId: true,
         ativo: true,
         createdAt: true,
       },
@@ -78,6 +78,22 @@ export class AuthService {
         nome: true,
         email: true,
         role: true,
+        clienteId: true,
+        ativo: true,
+        createdAt: true,
+      },
+    });
+  }
+  async getUsersTecnico() {
+    return this.prisma.user.findMany({
+      where: { role: "TECNICO" },
+      select: {
+        id: true,
+        username: true,
+        nome: true,
+        email: true,
+        role: true,
+        clienteId: true,
         ativo: true,
         createdAt: true,
       },
@@ -93,6 +109,7 @@ export class AuthService {
         nome: true,
         email: true,
         role: true,
+        clienteId: true,
         ativo: true,
         createdAt: true,
       },
@@ -109,6 +126,7 @@ export class AuthService {
         nome: true,
         email: true,
         role: true,
+        clienteId: true,
         ativo: true,
         updatedAt: true,
       },
@@ -118,6 +136,60 @@ export class AuthService {
   async deleteUser(id: number) {
     return this.prisma.user.delete({
       where: { id },
+    });
+  }
+
+  async resetPassword(username: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (!user) {
+      throw new Error("Usuário não encontrado");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    return this.prisma.user.update({
+      where: { username },
+      data: { password: hashedPassword },
+      select: {
+        id: true,
+        username: true,
+        nome: true,
+        email: true,
+        role: true,
+        clienteId: true,
+        ativo: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async changePassword(id: number, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new Error("Usuário não encontrado");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword },
+      select: {
+        id: true,
+        username: true,
+        nome: true,
+        email: true,
+        role: true,
+        clienteId: true,
+        ativo: true,
+        updatedAt: true,
+      },
     });
   }
 }
