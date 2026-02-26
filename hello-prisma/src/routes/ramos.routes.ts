@@ -6,11 +6,14 @@ import { roleMiddleware } from "../middlewares/role.middleware.js";
 const router = Router();
 
 router.use(authMiddleware);
+
+// GETs liberados para qualquer role autenticado
+router.get("/", RamoAtividadeController.findAll);
+router.get("/:id", RamoAtividadeController.findById);
+
 router.use(roleMiddleware("ADMIN"));
 
 router.post("/", RamoAtividadeController.create);
-router.get("/", RamoAtividadeController.findAll);
-router.get("/:id", RamoAtividadeController.findById);
 router.put("/:id", RamoAtividadeController.update);
 router.delete("/:id", RamoAtividadeController.delete);
 
