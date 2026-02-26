@@ -9,13 +9,36 @@ export interface CreateUserDTO {
   nome: string;
   email: string;
   role: "ADMIN" | "TECNICO";
+  clienteId?: number;
 }
 
 export interface UpdateUserDTO {
   nome?: string;
   email?: string;
   role?: "ADMIN" | "TECNICO";
+  clienteId?: number;
   ativo?: boolean;
+}
+
+export interface ChangePasswordDTO {
+  newPassword: string;
+}
+
+export interface CreateContatoDTO {
+  nome: string;
+  cargo?: string;
+  telefone?: string;
+  email?: string;
+  principal?: boolean;
+}
+
+export interface CreateContratoDTO {
+  numeroContrato: string;
+  dataInicio: string;
+  dataFim: string;
+  valorMensal: number;
+  descricaoServicos: string;
+  condicoes?: string;
 }
 
 export interface CreateClienteDTO {
@@ -30,6 +53,25 @@ export interface CreateClienteDTO {
   telefone?: string;
   email?: string;
   ramoAtividadeId: number;
+  contato: CreateContatoDTO;
+  contrato: CreateContratoDTO;
+}
+
+export interface UpdateContatoDTO {
+  nome?: string;
+  cargo?: string;
+  telefone?: string;
+  email?: string;
+  principal?: boolean;
+}
+
+export interface UpdateContratoDTO {
+  numeroContrato?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  valorMensal?: number;
+  descricaoServicos?: string;
+  condicoes?: string;
 }
 
 export interface UpdateClienteDTO {
@@ -45,6 +87,8 @@ export interface UpdateClienteDTO {
   email?: string;
   ramoAtividadeId?: number;
   ativo?: boolean;
+  contato?: UpdateContatoDTO;
+  contrato?: UpdateContratoDTO;
 }
 
 export interface CreateChecklistDTO {
@@ -62,10 +106,15 @@ export interface CreateRelatorioDTO {
   clienteId: number;
   contatoId?: number;
   dataVisita: string;
+  modalidadeServico:
+    | "Sem contrato - remoto"
+    | "Sem contrato - local"
+    | "Contrato - local"
+    | "Contrato - remoto";
   observacoes?: string;
   tecnicos: string[];
   setores: Array<{ setorId: number; observacao?: string }>;
-  horarios: { horaChegada: string; horaSaida: string };
+  horarios?: Array<{ horaChegada: string; horaSaida: string }>;
   checklists: Array<{ checklistId: number }>;
 }
 
@@ -73,11 +122,16 @@ export interface UpdateRelatorioDTO {
   clienteId?: number;
   contatoId?: number;
   dataVisita?: string;
+  modalidadeServico?:
+    | "Sem contrato - remoto"
+    | "Sem contrato - local"
+    | "Contrato - local"
+    | "Contrato - remoto";
   observacoes?: string;
   impresso?: boolean;
   tecnicos?: string[];
   setores?: Array<{ setorId: number; observacao?: string }>;
-  horarios?: { horaChegada: string; horaSaida: string };
+  horarios?: Array<{ horaChegada: string; horaSaida: string }>;
   checklists?: Array<{ checklistId: number }>;
 }
 

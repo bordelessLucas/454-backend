@@ -12,11 +12,9 @@ export class AuthController {
       const result = await authService.login(data);
       res.json(result);
     } catch (error) {
-      res
-        .status(401)
-        .json({
-          error: error instanceof Error ? error.message : "Erro ao fazer login",
-        });
+      res.status(401).json({
+        error: error instanceof Error ? error.message : "Erro ao fazer login",
+      });
     }
   }
 
@@ -26,12 +24,9 @@ export class AuthController {
       const user = await authService.createUser(data);
       res.status(201).json(user);
     } catch (error) {
-      res
-        .status(400)
-        .json({
-          error:
-            error instanceof Error ? error.message : "Erro ao criar usuário",
-        });
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "Erro ao criar usuário",
+      });
     }
   }
 
@@ -76,14 +71,10 @@ export class AuthController {
       const user = await authService.updateUser(id, data);
       res.json(user);
     } catch (error) {
-      res
-        .status(400)
-        .json({
-          error:
-            error instanceof Error
-              ? error.message
-              : "Erro ao atualizar usuário",
-        });
+      res.status(400).json({
+        error:
+          error instanceof Error ? error.message : "Erro ao atualizar usuário",
+      });
     }
   }
 
@@ -93,12 +84,10 @@ export class AuthController {
       await authService.deleteUser(id);
       res.status(204).send();
     } catch (error) {
-      res
-        .status(400)
-        .json({
-          error:
-            error instanceof Error ? error.message : "Erro ao deletar usuário",
-        });
+      res.status(400).json({
+        error:
+          error instanceof Error ? error.message : "Erro ao deletar usuário",
+      });
     }
   }
 
@@ -120,8 +109,7 @@ export class AuthController {
       });
     } catch (error) {
       res.status(400).json({
-        error:
-          error instanceof Error ? error.message : "Erro ao resetar senha",
+        error: error instanceof Error ? error.message : "Erro ao resetar senha",
       });
     }
   }
@@ -145,8 +133,7 @@ export class AuthController {
       });
     } catch (error) {
       res.status(400).json({
-        error:
-          error instanceof Error ? error.message : "Erro ao alterar senha",
+        error: error instanceof Error ? error.message : "Erro ao alterar senha",
       });
     }
   }

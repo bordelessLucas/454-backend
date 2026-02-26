@@ -21,10 +21,12 @@ model User {
   nome      String
   email     String   @unique
   role      Role     @default(TECNICO)
+  clienteId Int?     @map("cliente_id")
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  cliente    Cliente?    @relation(fields: [clienteId], references: [id])
   relatorios Relatorio[]
 
   @@map("users")
@@ -62,6 +64,7 @@ model Cliente {
   contatos      ClienteContato[]
   contratos     Contrato[]
   relatorios    Relatorio[]
+  users         User[]
 
   @@map("clientes")
 }
@@ -91,6 +94,7 @@ model Contrato {
   dataFim           DateTime? @map("data_fim")
   valorMensal       Decimal   @map("valor_mensal") @db.Decimal(10, 2)
   descricaoServicos String    @map("descricao_servicos") @db.Text
+  condicoes         String?   @db.Text
   ativo             Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -126,15 +130,16 @@ model Checklist {
 }
 
 model Relatorio {
-  id          Int      @id @default(autoincrement())
-  clienteId   Int      @map("cliente_id")
-  contatoId   Int?     @map("contato_id")
-  criadoPorId Int      @map("criado_por_id")
-  dataVisita  DateTime @map("data_visita")
-  observacoes String?  @db.Text
-  impresso    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  clienteId         Int      @map("cliente_id")
+  contatoId         Int?     @map("contato_id")
+  criadoPorId       Int      @map("criado_por_id")
+  dataVisita        DateTime @map("data_visita")
+  modalidadeServico String?  @map("modalidade_servico")
+  observacoes       String?  @db.Text
+  impresso          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   cliente   Cliente         @relation(fields: [clienteId], references: [id])
   contato   ClienteContato? @relation(fields: [contatoId], references: [id])
@@ -142,7 +147,7 @@ model Relatorio {
 
   tecnicos   RelatorioTecnico[]
   setores    RelatorioSetor[]
-  horarios   RelatorioHorario?
+  horarios   RelatorioHorario[]
   checklists RelatorioChecklist[]
 
   @@map("relatorios")
@@ -174,7 +179,7 @@ model RelatorioSetor {
 
 model RelatorioHorario {
   id          Int      @id @default(autoincrement())
-  relatorioId Int      @unique @map("relatorio_id")
+  relatorioId Int      @map("relatorio_id")
   horaChegada DateTime @map("hora_chegada")
   horaSaida   DateTime @map("hora_saida")
   createdAt   DateTime @default(now())

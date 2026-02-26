@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import authRouter from "./routes/auth.routes.js";
 import usersRouter from "./routes/users.routes.js";
 import clientesRouter from "./routes/clientes.routes.js";
@@ -9,6 +10,13 @@ import ramosRouter from "./routes/ramos.routes.js";
 import configuracoesRouter from "./routes/configuracoes.routes.js";
 
 const app = express();
+
+app.use(
+  cors({
+    origin: process.env["CORS_ORIGIN"] ?? "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 
