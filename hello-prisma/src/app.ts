@@ -11,9 +11,13 @@ import configuracoesRouter from "./routes/configuracoes.routes.js";
 
 const app = express();
 
+const corsOrigin = (
+  process.env["CORS_ORIGIN"] ?? "http://localhost:5173"
+).replace(/\/$/, "");
+
 app.use(
   cors({
-    origin: process.env["CORS_ORIGIN"] ?? "http://localhost:5173",
+    origin: corsOrigin,
     credentials: true,
   }),
 );

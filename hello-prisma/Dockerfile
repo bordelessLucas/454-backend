@@ -36,6 +36,9 @@ RUN npm ci --only=production && npm cache clean --force
 # Copiar arquivos compilados do estágio anterior
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
+
+RUN chmod +x ./scripts/start.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
@@ -44,5 +47,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expor a porta
 EXPOSE 3000
 
-# Comando para rodar migrations e iniciar o servidor
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+# Comando de inicialização
+CMD ["sh", "./scripts/start.sh"]
