@@ -13,9 +13,6 @@ fi
 echo "[startup] ✅ DATABASE_URL encontrada"
 echo "[startup] Executando Prisma migrate deploy..."
 
-# Criar .env temporário para o Prisma CLI ler
-echo "DATABASE_URL=${DATABASE_URL}" > .env
-
 if npx prisma migrate deploy; then
   echo "[startup] ✅ Migrations aplicadas com sucesso."
 else
@@ -23,9 +20,6 @@ else
   echo "[startup] ⚠️  Falha ao aplicar migrations (exit code: $MIGRATE_EXIT)"
   echo "[startup] Continuando com startup mesmo assim..."
 fi
-
-# Remover .env temporário
-rm -f .env
 
 echo "[startup] ✅ Iniciando servidor Node na porta ${PORT:-3000}..."
 exec node dist/server.js
