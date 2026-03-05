@@ -1,0 +1,976 @@
+================================================================================
+                  DOCUMENTAÇÃO DETALHADA DE ROTAS - API 454
+================================================================================
+Nota: Substitua {id} pelo ID real do recurso na URL
+       Substitua {PORT} por 3000 (desenvolvimento) ou sua URL de produção
+================================================================================
+
+📌 AUTH - AUTENTICAÇÃO
+================================================================================
+
+🔹 POST /auth/login
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: NÃO
+  Requer Admin: NÃO
+  Status: 200 (sucesso) | 401 (credenciais inválidas)
+  
+  REQUEST BODY:
+  {
+    "username": "admin",
+    "password": "senha123"
+  }
+  
+  RESPONSE (200):
+  {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": 1,
+      "username": "admin",
+      "nome": "Administrador",
+      "role": "ADMIN"
+    }
+  }
+  
+  RESPONSE (401):
+  {
+    "error": "Credenciais inválidas"
+  }
+
+🔹 POST /auth/reset-password
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: NÃO
+  Requer Admin: NÃO
+  Status: 200 (sucesso) | 400 (erro)
+  
+  REQUEST BODY:
+  {
+    "username": "admin",
+    "newPassword": "novaSenha123"
+  }
+  
+  RESPONSE (200):
+  {
+    "message": "Senha resetada com sucesso",
+    "user": {
+      "id": 1,
+      "username": "admin",
+      "nome": "Administrador",
+      "email": "admin@example.com",
+      "role": "ADMIN",
+      "ativo": true,
+      "updatedAt": "2026-02-18T10:30:00Z"
+    }
+  }
+
+
+📌 USERS - GERENCIAMENTO DE USUÁRIOS
+================================================================================
+
+🔹 POST /users
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 201 (criado) | 400 (erro)
+  
+  REQUEST BODY:
+  {
+    "username": "tecnico1",
+    "password": "senha123",
+    "nome": "João Técnico",
+    "email": "joao@example.com",
+    "role": "TECNICO"
+  }
+  
+  RESPONSE (201):
+  {
+    "id": 2,
+    "username": "tecnico1",
+    "nome": "João Técnico",
+    "email": "joao@example.com",
+    "role": "TECNICO",
+    "ativo": true,
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 GET /users
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  [
+    {
+      "id": 1,
+      "username": "admin",
+      "nome": "Administrador",
+      "email": "admin@example.com",
+      "role": "ADMIN",
+      "ativo": true,
+      "createdAt": "2026-02-18T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "username": "tecnico1",
+      "nome": "João Técnico",
+      "email": "joao@example.com",
+      "role": "TECNICO",
+      "ativo": true,
+      "createdAt": "2026-02-18T10:30:00Z"
+    }
+  ]
+
+🔹 GET /users/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200 | 404 (não encontrado)
+  
+  Exemplo: GET /users/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "username": "admin",
+    "nome": "Administrador",
+    "email": "admin@example.com",
+    "role": "ADMIN",
+    "ativo": true,
+    "createdAt": "2026-02-18T09:00:00Z"
+  }
+
+🔹 PUT /users/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200 | 400 (erro)
+  
+  Exemplo: PUT /users/2
+  
+  REQUEST BODY (todos os campos são opcionais):
+  {
+    "nome": "João Silva",
+    "email": "joao.silva@example.com",
+    "role": "ADMIN",
+    "ativo": false
+  }
+  
+  RESPONSE (200):
+  {
+    "id": 2,
+    "username": "tecnico1",
+    "nome": "João Silva",
+    "email": "joao.silva@example.com",
+    "role": "ADMIN",
+    "ativo": false,
+    "updatedAt": "2026-02-18T11:00:00Z"
+  }
+
+🔹 DELETE /users/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 204 (sem conteúdo) | 400 (erro)
+  
+  Exemplo: DELETE /users/2
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (204): Sem corpo de resposta
+
+
+📌 CLIENTES - GERENCIAMENTO DE CLIENTES
+================================================================================
+
+🔹 POST /clientes
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 201 (criado) | 400 (erro)
+  
+  REQUEST BODY:
+  {
+    "razaoSocial": "Empresa LTDA",
+    "nomeFantasia": "Empresa XYZ",
+    "cnpj": "12.345.678/0001-90",
+    "inscricaoEstadual": "123.456.789.012",
+    "endereco": "Rua das Flores, 123",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "cep": "01234-567",
+    "telefone": "(11) 3333-3333",
+    "email": "contato@empresa.com",
+    "ramoAtividadeId": 1
+  }
+  
+  RESPONSE (201):
+  {
+    "id": 1,
+    "razaoSocial": "Empresa LTDA",
+    "nomeFantasia": "Empresa XYZ",
+    "cnpj": "12.345.678/0001-90",
+    "inscricaoEstadual": "123.456.789.012",
+    "endereco": "Rua das Flores, 123",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "cep": "01234-567",
+    "telefone": "(11) 3333-3333",
+    "email": "contato@empresa.com",
+    "ramoAtividadeId": 1,
+    "ativo": true,
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 GET /clientes
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 200
+  
+  Query Parameters (opcionais):
+  - nomeFantasia: filtra por nome fantasia
+  - cnpj: filtra por CNPJ
+  - ramoAtividadeId: filtra por ramo de atividade
+  
+  Exemplo: GET /clientes?nomeFantasia=Empresa&ramoAtividadeId=1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  [
+    {
+      "id": 1,
+      "razaoSocial": "Empresa LTDA",
+      "nomeFantasia": "Empresa XYZ",
+      "cnpj": "12.345.678/0001-90",
+      "inscricaoEstadual": "123.456.789.012",
+      "endereco": "Rua das Flores, 123",
+      "cidade": "São Paulo",
+      "estado": "SP",
+      "cep": "01234-567",
+      "telefone": "(11) 3333-3333",
+      "email": "contato@empresa.com",
+      "ramoAtividadeId": 1,
+      "ativo": true,
+      "createdAt": "2026-02-18T10:30:00Z"
+    }
+  ]
+
+🔹 GET /clientes/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 200 | 404
+  
+  Exemplo: GET /clientes/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "razaoSocial": "Empresa LTDA",
+    "nomeFantasia": "Empresa XYZ",
+    "cnpj": "12.345.678/0001-90",
+    "inscricaoEstadual": "123.456.789.012",
+    "endereco": "Rua das Flores, 123",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "cep": "01234-567",
+    "telefone": "(11) 3333-3333",
+    "email": "contato@empresa.com",
+    "ramoAtividadeId": 1,
+    "ativo": true,
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 PUT /clientes/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 200 | 400
+  
+  Exemplo: PUT /clientes/1
+  
+  REQUEST BODY (todos os campos são opcionais):
+  {
+    "nomeFantasia": "Empresa ABC",
+    "telefone": "(11) 4444-4444",
+    "ativo": false
+  }
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "razaoSocial": "Empresa LTDA",
+    "nomeFantasia": "Empresa ABC",
+    "cnpj": "12.345.678/0001-90",
+    "inscricaoEstadual": "123.456.789.012",
+    "endereco": "Rua das Flores, 123",
+    "cidade": "São Paulo",
+    "estado": "SP",
+    "cep": "01234-567",
+    "telefone": "(11) 4444-4444",
+    "email": "contato@empresa.com",
+    "ramoAtividadeId": 1,
+    "ativo": false,
+    "updatedAt": "2026-02-18T11:00:00Z"
+  }
+
+🔹 DELETE /clientes/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 204 | 400
+  
+  Exemplo: DELETE /clientes/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (204): Sem corpo de resposta
+
+🔹 POST /clientes/:id/contatos
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 201 | 400
+  
+  Exemplo: POST /clientes/1/contatos
+  
+  REQUEST BODY:
+  {
+    "nome": "Carlos Silva",
+    "cargo": "Gerente Operacional",
+    "email": "carlos@empresa.com",
+    "telefone": "(11) 99999-8888"
+  }
+  
+  RESPONSE (201):
+  {
+    "id": 1,
+    "clienteId": 1,
+    "nome": "Carlos Silva",
+    "cargo": "Gerente Operacional",
+    "email": "carlos@empresa.com",
+    "telefone": "(11) 99999-8888",
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 PUT /clientes/:id/contatos/:contatoId
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 200 | 400
+  
+  Exemplo: PUT /clientes/1/contatos/1
+  
+  REQUEST BODY (todos os campos são opcionais):
+  {
+    "nome": "Carlos Silva Santos",
+    "cargo": "Superintendente"
+  }
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "clienteId": 1,
+    "nome": "Carlos Silva Santos",
+    "cargo": "Superintendente",
+    "email": "carlos@empresa.com",
+    "telefone": "(11) 99999-8888",
+    "updatedAt": "2026-02-18T11:00:00Z"
+  }
+
+🔹 DELETE /clientes/:id/contatos/:contatoId
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 204 | 400
+  
+  Exemplo: DELETE /clientes/1/contatos/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (204): Sem corpo de resposta
+
+
+📌 CHECKLISTS - GERENCIAMENTO DE CHECKLISTS
+================================================================================
+
+🔹 POST /checklists
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 201 | 400
+  
+  REQUEST BODY:
+  {
+    "nome": "Checklist Segurança",
+    "descricao": "Verificação de itens de segurança no local"
+  }
+  
+  RESPONSE (201):
+  {
+    "id": 1,
+    "nome": "Checklist Segurança",
+    "descricao": "Verificação de itens de segurança no local",
+    "ativo": true,
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 GET /checklists
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  [
+    {
+      "id": 1,
+      "nome": "Checklist Segurança",
+      "descricao": "Verificação de itens de segurança no local",
+      "ativo": true,
+      "createdAt": "2026-02-18T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "nome": "Checklist Inspeção",
+      "descricao": "Inspeção geral da instalação",
+      "ativo": true,
+      "createdAt": "2026-02-18T10:35:00Z"
+    }
+  ]
+
+🔹 GET /checklists/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200 | 404
+  
+  Exemplo: GET /checklists/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "nome": "Checklist Segurança",
+    "descricao": "Verificação de itens de segurança no local",
+    "ativo": true,
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 PUT /checklists/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200 | 400
+  
+  Exemplo: PUT /checklists/1
+  
+  REQUEST BODY (todos os campos são opcionais):
+  {
+    "nome": "Checklist Segurança v2",
+    "ativo": false
+  }
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "nome": "Checklist Segurança v2",
+    "descricao": "Verificação de itens de segurança no local",
+    "ativo": false,
+    "updatedAt": "2026-02-18T11:00:00Z"
+  }
+
+🔹 DELETE /checklists/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 204 | 400
+  
+  Exemplo: DELETE /checklists/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (204): Sem corpo de resposta
+
+
+📌 CONFIGURAÇÕES - GERENCIAMENTO DE CONFIGURAÇÕES
+================================================================================
+
+🔹 GET /configuracoes
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 200
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "horarioInicioExpediente": "08:00",
+    "horarioFimExpediente": "17:00",
+    "permiteCheckIn": true,
+    "updatedAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 PUT /configuracoes
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200 | 400
+  
+  REQUEST BODY:
+  {
+    "horarioInicioExpediente": "07:00",
+    "horarioFimExpediente": "18:00",
+    "permiteCheckIn": true
+  }
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "horarioInicioExpediente": "07:00",
+    "horarioFimExpediente": "18:00",
+    "permiteCheckIn": true,
+    "updatedAt": "2026-02-18T11:00:00Z"
+  }
+
+
+📌 RAMOS - GERENCIAMENTO DE RAMOS DE ATIVIDADE
+================================================================================
+
+🔹 POST /ramos
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 201 | 400
+  
+  REQUEST BODY:
+  {
+    "nome": "Indústria Alimentícia",
+    "descricao": "Empresas do ramo alimentício"
+  }
+  
+  RESPONSE (201):
+  {
+    "id": 1,
+    "nome": "Indústria Alimentícia",
+    "descricao": "Empresas do ramo alimentício",
+    "ativo": true,
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 GET /ramos
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  [
+    {
+      "id": 1,
+      "nome": "Indústria Alimentícia",
+      "descricao": "Empresas do ramo alimentício",
+      "ativo": true,
+      "createdAt": "2026-02-18T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "nome": "Comércio Varejista",
+      "descricao": "Lojas e varejistas em geral",
+      "ativo": true,
+      "createdAt": "2026-02-18T10:35:00Z"
+    }
+  ]
+
+🔹 GET /ramos/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200 | 404
+  
+  Exemplo: GET /ramos/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "nome": "Indústria Alimentícia",
+    "descricao": "Empresas do ramo alimentício",
+    "ativo": true,
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 PUT /ramos/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200 | 400
+  
+  Exemplo: PUT /ramos/1
+  
+  REQUEST BODY (todos os campos são opcionais):
+  {
+    "nome": "Alimentos e Bebidas",
+    "ativo": false
+  }
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "nome": "Alimentos e Bebidas",
+    "descricao": "Empresas do ramo alimentício",
+    "ativo": false,
+    "updatedAt": "2026-02-18T11:00:00Z"
+  }
+
+🔹 DELETE /ramos/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 204 | 400
+  
+  Exemplo: DELETE /ramos/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (204): Sem corpo de resposta
+
+
+📌 RELATÓRIOS - GERENCIAMENTO DE RELATÓRIOS
+================================================================================
+
+🔹 POST /relatorios
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 201 | 400
+  
+  REQUEST BODY:
+  {
+    "clienteId": 1,
+    "contatoId": 1,
+    "dataVisita": "2026-02-18",
+    "observacoes": "Visita rotineira de inspeção",
+    "tecnicos": ["João Silva", "Maria Santos"],
+    "setores": [
+      {
+        "setorId": 1,
+        "observacao": "Setor OK"
+      },
+      {
+        "setorId": 2,
+        "observacao": "Necessário manutenção"
+      }
+    ],
+    "horarios": {
+      "horaChegada": "09:00",
+      "horaSaida": "17:00"
+    },
+    "checklists": [
+      { "checklistId": 1 },
+      { "checklistId": 2 }
+    ]
+  }
+  
+  RESPONSE (201):
+  {
+    "id": 1,
+    "clienteId": 1,
+    "contatoId": 1,
+    "dataVisita": "2026-02-18",
+    "observacoes": "Visita rotineira de inspeção",
+    "impresso": false,
+    "criadoPorId": 1,
+    "tecnicos": ["João Silva", "Maria Santos"],
+    "setores": [
+      {
+        "setorId": 1,
+        "observacao": "Setor OK"
+      },
+      {
+        "setorId": 2,
+        "observacao": "Necessário manutenção"
+      }
+    ],
+    "horarios": {
+      "horaChegada": "09:00",
+      "horaSaida": "17:00"
+    },
+    "checklists": [
+      { "checklistId": 1 },
+      { "checklistId": 2 }
+    ],
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 GET /relatorios
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 200
+  
+  Query Parameters (opcionais):
+  - clienteId: filtra por cliente
+  - criadoPorId: filtra por usuário criador
+  - dataInicio: filtra a partir de uma data (YYYY-MM-DD)
+  - dataFim: filtra até uma data (YYYY-MM-DD)
+  - impresso: filtra por status de impressão (true/false)
+  
+  Exemplo: GET /relatorios?clienteId=1&impresso=false
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  [
+    {
+      "id": 1,
+      "clienteId": 1,
+      "contatoId": 1,
+      "dataVisita": "2026-02-18",
+      "observacoes": "Visita rotineira de inspeção",
+      "impresso": false,
+      "criadoPorId": 1,
+      "createdAt": "2026-02-18T10:30:00Z"
+    }
+  ]
+
+🔹 GET /relatorios/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 200 | 404
+  
+  Exemplo: GET /relatorios/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "clienteId": 1,
+    "contatoId": 1,
+    "dataVisita": "2026-02-18",
+    "observacoes": "Visita rotineira de inspeção",
+    "impresso": false,
+    "criadoPorId": 1,
+    "tecnicos": ["João Silva", "Maria Santos"],
+    "setores": [
+      {
+        "setorId": 1,
+        "observacao": "Setor OK"
+      },
+      {
+        "setorId": 2,
+        "observacao": "Necessário manutenção"
+      }
+    ],
+    "horarios": {
+      "horaChegada": "09:00",
+      "horaSaida": "17:00"
+    },
+    "checklists": [
+      { "checklistId": 1 },
+      { "checklistId": 2 }
+    ],
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 PUT /relatorios/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 200 | 400
+  
+  Exemplo: PUT /relatorios/1
+  
+  REQUEST BODY (todos os campos são opcionais):
+  {
+    "observacoes": "Visita concluída com sucesso",
+    "impresso": true
+  }
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "clienteId": 1,
+    "contatoId": 1,
+    "dataVisita": "2026-02-18",
+    "observacoes": "Visita concluída com sucesso",
+    "impresso": true,
+    "criadoPorId": 1,
+    "updatedAt": "2026-02-18T11:00:00Z"
+  }
+
+🔹 DELETE /relatorios/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: NÃO
+  Status: 204 | 400
+  
+  Exemplo: DELETE /relatorios/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (204): Sem corpo de resposta
+
+
+📌 SETORES - GERENCIAMENTO DE SETORES
+================================================================================
+
+🔹 POST /setores
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 201 | 400
+  
+  REQUEST BODY:
+  {
+    "nome": "Produção",
+    "descricao": "Setor de produção da fábrica"
+  }
+  
+  RESPONSE (201):
+  {
+    "id": 1,
+    "nome": "Produção",
+    "descricao": "Setor de produção da fábrica",
+    "ativo": true,
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 GET /setores
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  [
+    {
+      "id": 1,
+      "nome": "Produção",
+      "descricao": "Setor de produção da fábrica",
+      "ativo": true,
+      "createdAt": "2026-02-18T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "nome": "Qualidade",
+      "descricao": "Controle de qualidade",
+      "ativo": true,
+      "createdAt": "2026-02-18T10:35:00Z"
+    }
+  ]
+
+🔹 GET /setores/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200 | 404
+  
+  Exemplo: GET /setores/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "nome": "Produção",
+    "descricao": "Setor de produção da fábrica",
+    "ativo": true,
+    "createdAt": "2026-02-18T10:30:00Z"
+  }
+
+🔹 PUT /setores/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 200 | 400
+  
+  Exemplo: PUT /setores/1
+  
+  REQUEST BODY (todos os campos são opcionais):
+  {
+    "nome": "Unidade de Produção",
+    "ativo": false
+  }
+  
+  RESPONSE (200):
+  {
+    "id": 1,
+    "nome": "Unidade de Produção",
+    "descricao": "Setor de produção da fábrica",
+    "ativo": false,
+    "updatedAt": "2026-02-18T11:00:00Z"
+  }
+
+🔹 DELETE /setores/:id
+────────────────────────────────────────────────────────────────────────────
+  Requer Token: SIM
+  Requer Admin: SIM
+  Status: 204 | 400
+  
+  Exemplo: DELETE /setores/1
+  
+  REQUEST BODY: (vazio)
+  
+  RESPONSE (204): Sem corpo de resposta
+
+
+================================================================================
+                        INFORMAÇÕES GERAIS
+================================================================================
+
+🔐 COMO USAR O TOKEN:
+────────────────────────────────────────────────────────────────────────────
+1. Faça login em POST /auth/login
+2. Você receberá um token no response
+3. Para usar o token, adicione este header a toda requisição:
+   
+   Authorization: Bearer {seu_token_aqui}
+   
+   Exemplo com curl:
+   curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+        http://localhost:3000/users
+
+ROLES (Papéis):
+  - ADMIN: Acesso total, pode criar usuários e gerenciar configurações
+  - TECNICO: Acesso limitado, pode criar e gerenciar clientes e relatórios
+
+HTTP STATUS CODES:
+  200: OK - Requisição bem-sucedida (GET, PUT)
+  201: Created - Recurso criado com sucesso (POST)
+  204: No Content - Recurso deletado com sucesso (DELETE)
+  400: Bad Request - Erro na requisição (dados inválidos)
+  401: Unauthorized - Token inválido ou ausente
+  403: Forbidden - Sem permissão para acessar
+  404: Not Found - Recurso não encontrado
+  500: Internal Server Error - Erro no servidor
+
+HEADERS OBRIGATÓRIOS:
+  Content-Type: application/json
+  Authorization: Bearer {token} (para rotas protegidas)
+
+CORS:
+  O frontend pode acessar a API sem problemas se estiver rodando em:
+  - http://localhost:5173 (desenvolvimento)
+  - https://seu-dominio.com (produção)
+
+================================================================================

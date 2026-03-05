@@ -3,12 +3,20 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+const databaseUrl = process.env["DATABASE_URL"];
+
+if (!databaseUrl) {
+  console.warn(
+    "[prisma.config] DATABASE_URL not found. This is expected in production if using environment variables directly.",
+  );
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: databaseUrl || "postgresql://user:password@localhost:5432/db",
   },
 });

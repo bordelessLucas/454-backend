@@ -1,0 +1,22 @@
+services:
+  # Aplicação Web
+  - type: web
+    name: 454-backend
+    runtime: docker
+    rootDir: hello-prisma
+    dockerfilePath: ./Dockerfile
+    region: sp-são-paulo
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        scope: build
+      - key: JWT_SECRET
+        scope: build
+      - key: CORS_ORIGIN
+        value: https://seu-frontend.onrender.com
+    autoDeploy: true

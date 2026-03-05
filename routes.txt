@@ -1,0 +1,254 @@
+================================================================================
+                        RESUMO DE ROTAS - API 454
+================================================================================
+
+📌 AUTH - Autenticação
+================================================================================
+POST /auth/login
+  - Método: POST
+  - Requer Token: NÃO
+  - Requer Admin: NÃO
+  - Descrição: Realiza login do usuário e retorna token de autenticação
+
+
+📌 USERS - Gerenciamento de Usuários
+================================================================================
+POST /users
+  - Método: POST
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Cria um novo usuário na aplicação
+
+GET /users
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Lista todos os usuários do sistema
+
+GET /users/:id
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Obtém informações de um usuário específico pelo ID
+
+PUT /users/:id
+  - Método: PUT
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Atualiza informações de um usuário específico
+
+DELETE /users/:id
+  - Método: DELETE
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Deleta um usuário da aplicação
+
+
+📌 CLIENTES - Gerenciamento de Clientes
+================================================================================
+POST /clientes
+  - Método: POST
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Cria um novo cliente
+
+GET /clientes
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Lista todos os clientes
+
+GET /clientes/:id
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Obtém informações de um cliente específico pelo ID
+
+PUT /clientes/:id
+  - Método: PUT
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Atualiza informações de um cliente
+
+DELETE /clientes/:id
+  - Método: DELETE
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Deleta um cliente
+
+POST /clientes/:id/contatos
+  - Método: POST
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Adiciona um novo contato para um cliente específico
+
+PUT /clientes/:id/contatos/:contatoId
+  - Método: PUT
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Atualiza informações de um contato do cliente
+
+DELETE /clientes/:id/contatos/:contatoId
+  - Método: DELETE
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Deleta um contato de um cliente
+
+
+📌 CHECKLISTS - Gerenciamento de Checklists
+================================================================================
+POST /checklists
+  - Método: POST
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Cria um novo checklist
+
+GET /checklists
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Lista todos os checklists
+
+GET /checklists/:id
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Obtém informações de um checklist específico pelo ID
+
+PUT /checklists/:id
+  - Método: PUT
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Atualiza um checklist
+
+DELETE /checklists/:id
+  - Método: DELETE
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Deleta um checklist
+
+
+📌 CONFIGURAÇÕES - Gerenciamento de Configurações
+================================================================================
+GET /configuracoes
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Obtém todas as configurações da aplicação
+
+PUT /configuracoes
+  - Método: PUT
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Cria ou atualiza as configurações da aplicação
+
+
+📌 RAMOS - Gerenciamento de Ramos de Atividade
+================================================================================
+POST /ramos
+  - Método: POST
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Cria um novo ramo de atividade
+
+GET /ramos
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Lista todos os ramos de atividade
+
+GET /ramos/:id
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Obtém informações de um ramo específico pelo ID
+
+PUT /ramos/:id
+  - Método: PUT
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Atualiza um ramo de atividade
+
+DELETE /ramos/:id
+  - Método: DELETE
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Deleta um ramo de atividade
+
+
+📌 RELATÓRIOS - Gerenciamento de Relatórios
+================================================================================
+POST /relatorios
+  - Método: POST
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Cria um novo relatório
+
+GET /relatorios
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Lista todos os relatórios
+
+GET /relatorios/:id
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Obtém informações de um relatório específico pelo ID
+
+PUT /relatorios/:id
+  - Método: PUT
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Atualiza um relatório
+
+DELETE /relatorios/:id
+  - Método: DELETE
+  - Requer Token: SIM
+  - Requer Admin: NÃO
+  - Descrição: Deleta um relatório
+
+
+📌 SETORES - Gerenciamento de Setores
+================================================================================
+POST /setores
+  - Método: POST
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Cria um novo setor
+
+GET /setores
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Lista todos os setores
+
+GET /setores/:id
+  - Método: GET
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Obtém informações de um setor específico pelo ID
+
+PUT /setores/:id
+  - Método: PUT
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Atualiza um setor
+
+DELETE /setores/:id
+  - Método: DELETE
+  - Requer Token: SIM
+  - Requer Admin: SIM
+  - Descrição: Deleta um setor
+
+================================================================================
+                            TOTAL: 47 ROTAS
+================================================================================
+Legenda:
+- Token: Token JWT de autenticação necessário
+- Admin: Requer permissão de administrador
+- GET: Buscar dados
+- POST: Criar dados
+- PUT: Atualizar dados
+- DELETE: Deletar dados
+================================================================================
