@@ -21,7 +21,10 @@ function parseHorario(dataVisita: string, horario: string): Date {
     return dateTime;
   }
 
-  const baseDate = dataVisita.split("T")[0];
+  const [baseDate] = dataVisita.split("T");
+  if (!baseDate) {
+    throw new Error("Data da visita invalida");
+  }
   const dateTime = combinarDataHora(baseDate, horario);
   if (Number.isNaN(dateTime.getTime())) {
     throw new Error("Horario invalido (HH:mm)");

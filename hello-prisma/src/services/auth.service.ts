@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import type { LoginDTO, CreateUserDTO, UpdateUserDTO } from "../types/dtos.js";
@@ -48,15 +48,20 @@ export class AuthService {
   async createUser(data: CreateUserDTO) {
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
 
+    const userData: Prisma.UserUncheckedCreateInput = {
+      username: data.username,
+      password: hashedPassword,
+      nome: data.nome,
+      email: data.email,
+      role: data.role,
+    };
+
+    if (data.clienteId !== undefined) {
+      userData.clienteId = data.clienteId;
+    }
+
     return this.prisma.user.create({
-      data: {
-        username: data.username,
-        password: hashedPassword,
-        nome: data.nome,
-        email: data.email,
-        role: data.role,
-        clienteId: data.clienteId,
-      },
+      data: userData,
       select: {
         id: true,
         username: true,
