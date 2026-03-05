@@ -15,10 +15,15 @@ const corsOrigin = (
   process.env["CORS_ORIGIN"] ?? "http://localhost:5173"
 ).replace(/\/$/, "");
 
+console.log(`[CORS] Configurado para: ${corsOrigin}`);
+console.log(`[CORS] NODE_ENV: ${process.env["NODE_ENV"] ?? "not-set"}`);
+
 app.use(
   cors({
     origin: corsOrigin,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
