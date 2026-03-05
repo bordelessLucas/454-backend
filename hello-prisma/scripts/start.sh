@@ -16,7 +16,7 @@ echo "[startup] Executando Prisma migrate deploy..."
 # Exportar DATABASE_URL para o Prisma usar
 export DATABASE_URL
 
-if DATABASE_URL="${DATABASE_URL}" npx prisma migrate deploy --skip-generate; then
+if DATABASE_URL="${DATABASE_URL}" npx prisma migrate deploy; then
   echo "[startup] ✅ Migrations aplicadas com sucesso."
 else
   MIGRATE_EXIT=$?
