@@ -1,0 +1,1114 @@
+openapi: 3.0.3
+info:
+  title: Sistema de Relatórios API
+  description: |
+    API de gerenciamento de relatórios técnicos, clientes, usuários e cadastros auxiliares.
+
+    **Autenticação:** na maioria das rotas, envie `Authorization: Bearer <token>` obtido em `POST /auth/login`.
+
+    **Horário de login:** `POST /auth/login` pode retornar `403` se estiver fora da janela configurada em `/configuracoes` (ADMIN altera com `PUT`).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Desenvolvimento local
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+  - name: Clientes
+  - name: Relatórios
+  - name: Checklists
+  - name: Setores
+  - name: Ramos
+  - name: Configurações
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT retornado pelo login (validade ~8h).
+
+  schemas:
+    ErrorMessage:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    HealthOk:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          type: object
+          properties:
+            id: { type: integer }
+            username: { type: string }
+            nome: { type: string }
+            role: { type: string, enum: [ADMIN, TECNICO] }
+
+    ResetPasswordRequest:
+      type: object
+      required: [username, newPassword]
+      properties:
+        username:
+          type: string
+        newPassword:
+          type: string
+          format: password
+
+    ResetPasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Senha resetada com sucesso
+        user:
+          type: object
+          description: Dados públicos do usuário atualizados
+
+    CreateUserRequest:
+      type: object
+      required: [username, password, nome, email, role]
+      properties:
+        username: { type: string }
+        password: { type: string, format: password }
+        nome: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [ADMIN, TECNICO] }
+        clienteId: { type: integer, nullable: true }
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        nome: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [ADMIN, TECNICO] }
+        clienteId: { type: integer, nullable: true }
+        ativo: { type: boolean }
+
+    ChangePasswordRequest:
+      type: object
+      required: [newPassword]
+      properties:
+        newPassword:
+          type: string
+          format: password
+
+    UserPublic:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        nome: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [ADMIN, TECNICO] }
+        clienteId: { type: integer, nullable: true }
+        ativo: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CreateContatoRequest:
+      type: object
+      required: [nome]
+      properties:
+        nome: { type: string }
+        cargo: { type: string }
+        telefone: { type: string }
+        email: { type: string, format: email }
+        principal: { type: boolean }
+
+    CreateContratoRequest:
+      type: object
+      required: [numeroContrato, dataInicio, dataFim, valorMensal, descricaoServicos]
+      properties:
+        numeroContrato: { type: string }
+        dataInicio: { type: string, format: date-time, description: ISO 8601 }
+        dataFim: { type: string, format: date-time, description: ISO 8601 }
+        valorMensal: { type: number }
+        descricaoServicos: { type: string }
+        condicoes: { type: string }
+
+    CreateClienteRequest:
+      type: object
+      required:
+        - razaoSocial
+        - nomeFantasia
+        - cnpj
+        - endereco
+        - cidade
+        - estado
+        - cep
+        - ramoAtividadeId
+        - contato
+        - contrato
+      properties:
+        razaoSocial: { type: string }
+        nomeFantasia: { type: string }
+        cnpj: { type: string }
+        inscricaoEstadual: { type: string }
+        endereco: { type: string }
+        cidade: { type: string }
+        estado: { type: string }
+        cep: { type: string }
+        telefone: { type: string }
+        email: { type: string, format: email }
+        ramoAtividadeId: { type: integer }
+        contato:
+          $ref: "#/components/schemas/CreateContatoRequest"
+        contrato:
+          $ref: "#/components/schemas/CreateContratoRequest"
+
+    UpdateClienteRequest:
+      type: object
+      properties:
+        razaoSocial: { type: string }
+        nomeFantasia: { type: string }
+        cnpj: { type: string }
+        inscricaoEstadual: { type: string }
+        endereco: { type: string }
+        cidade: { type: string }
+        estado: { type: string }
+        cep: { type: string }
+        telefone: { type: string }
+        email: { type: string }
+        ramoAtividadeId: { type: integer }
+        ativo: { type: boolean }
+        contato:
+          $ref: "#/components/schemas/UpdateContatoRequest"
+        contrato:
+          $ref: "#/components/schemas/UpdateContratoRequest"
+
+    UpdateContatoRequest:
+      type: object
+      properties:
+        nome: { type: string }
+        cargo: { type: string }
+        telefone: { type: string }
+        email: { type: string }
+        principal: { type: boolean }
+
+    UpdateContratoRequest:
+      type: object
+      properties:
+        numeroContrato: { type: string }
+        dataInicio: { type: string, format: date-time }
+        dataFim: { type: string, format: date-time }
+        valorMensal: { type: number }
+        descricaoServicos: { type: string }
+        condicoes: { type: string }
+
+    ModalidadeServico:
+      type: string
+      enum:
+        - Sem contrato - remoto
+        - Sem contrato - local
+        - Contrato - local
+        - Contrato - remoto
+
+    RelatorioSetorItem:
+      type: object
+      required: [setorId]
+      properties:
+        setorId: { type: integer }
+        observacao: { type: string }
+
+    RelatorioHorarioItem:
+      type: object
+      required: [horaChegada, horaSaida]
+      properties:
+        horaChegada: { type: string, format: date-time, description: ISO 8601 }
+        horaSaida: { type: string, format: date-time, description: ISO 8601 }
+
+    RelatorioChecklistItem:
+      type: object
+      required: [checklistId]
+      properties:
+        checklistId: { type: integer }
+
+    CreateRelatorioRequest:
+      type: object
+      required: [clienteId, dataVisita, modalidadeServico, tecnicos, setores, checklists]
+      properties:
+        clienteId: { type: integer }
+        contatoId: { type: integer }
+        dataVisita: { type: string, format: date-time }
+        modalidadeServico:
+          $ref: "#/components/schemas/ModalidadeServico"
+        observacoes: { type: string }
+        tecnicos:
+          type: array
+          items: { type: string }
+          description: Nomes dos técnicos (strings)
+        setores:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatorioSetorItem"
+        horarios:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatorioHorarioItem"
+        checklists:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatorioChecklistItem"
+
+    UpdateRelatorioRequest:
+      type: object
+      properties:
+        clienteId: { type: integer }
+        contatoId: { type: integer }
+        dataVisita: { type: string, format: date-time }
+        modalidadeServico:
+          $ref: "#/components/schemas/ModalidadeServico"
+        observacoes: { type: string }
+        impresso: { type: boolean }
+        tecnicos:
+          type: array
+          items: { type: string }
+        setores:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatorioSetorItem"
+        horarios:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatorioHorarioItem"
+        checklists:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatorioChecklistItem"
+
+    CreateChecklistRequest:
+      type: object
+      required: [nome]
+      properties:
+        nome: { type: string }
+        descricao: { type: string }
+
+    UpdateChecklistRequest:
+      type: object
+      properties:
+        nome: { type: string }
+        descricao: { type: string }
+        ativo: { type: boolean }
+
+    CreateSetorRequest:
+      type: object
+      required: [nome]
+      properties:
+        nome: { type: string }
+        descricao: { type: string }
+
+    UpdateSetorRequest:
+      type: object
+      properties:
+        nome: { type: string }
+        descricao: { type: string }
+
+    CreateRamoRequest:
+      type: object
+      required: [nome]
+      properties:
+        nome: { type: string }
+
+    UpdateRamoRequest:
+      type: object
+      properties:
+        nome: { type: string }
+
+    ConfiguracaoUpsertRequest:
+      type: object
+      required: [dataInicio, dataFim]
+      properties:
+        dataInicio:
+          type: string
+          format: date-time
+          description: ISO 8601 — hora do dia é usada na janela de login
+        dataFim:
+          type: string
+          format: date-time
+
+    ConfiguracaoRecord:
+      type: object
+      properties:
+        id: { type: integer }
+        dataInicio: { type: string, format: date-time }
+        dataFim: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: API disponível
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthOk"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login (JWT)
+      description: Pode retornar 403 fora do horário configurado em configurações.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Token e dados do usuário
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Credenciais inválidas ou usuário inativo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Fora do horário de login permitido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Redefinir senha por username
+      description: |
+        **Atenção:** rota pública no código atual — não exige JWT. Em produção, restrinja ou proteja (ex. token administrativo).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Senha atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResetPasswordResponse"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /users/tecnico:
+    get:
+      tags: [Users]
+      summary: Listar usuários com role TECNICO
+      description: Qualquer usuário autenticado.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de técnicos
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /users:
+    post:
+      tags: [Users]
+      summary: Criar usuário
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Usuário criado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Acesso negado
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    get:
+      tags: [Users]
+      summary: Listar todos os usuários
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de usuários
+        "403": { description: Acesso negado }
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Users]
+      summary: Buscar usuário por id
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Usuário
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublic"
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403": { description: Acesso negado }
+    put:
+      tags: [Users]
+      summary: Atualizar usuário
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Atualizado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403": { description: Acesso negado }
+    delete:
+      tags: [Users]
+      summary: Remover usuário
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Removido
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403": { description: Acesso negado }
+
+  /users/{id}/password:
+    put:
+      tags: [Users]
+      summary: Alterar senha do usuário (ADMIN)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Senha alterada
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403": { description: Acesso negado }
+
+  /clientes:
+    get:
+      tags: [Clientes]
+      summary: Listar clientes
+      description: |
+        Filtros opcionais (query): `nomeFantasia`, `cnpj`, `ramoAtividadeId` (número).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: nomeFantasia
+          in: query
+          schema: { type: string }
+        - name: cnpj
+          in: query
+          schema: { type: string }
+        - name: ramoAtividadeId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Lista de clientes (com relações conforme service)
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    post:
+      tags: [Clientes]
+      summary: Criar cliente (com contato e contrato iniciais)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClienteRequest"
+      responses:
+        "201":
+          description: Cliente criado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /clientes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Clientes]
+      summary: Buscar cliente por id
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Cliente
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    put:
+      tags: [Clientes]
+      summary: Atualizar cliente
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClienteRequest"
+      responses:
+        "200":
+          description: Atualizado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    delete:
+      tags: [Clientes]
+      summary: Remover cliente
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Removido
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /clientes/{id}/contatos:
+    post:
+      tags: [Clientes]
+      summary: Criar contato para o cliente
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContatoRequest"
+      responses:
+        "201":
+          description: Contato criado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /clientes/{id}/contatos/{contatoId}:
+    put:
+      tags: [Clientes]
+      summary: Atualizar contato
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: contatoId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContatoRequest"
+      responses:
+        "200":
+          description: Atualizado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    delete:
+      tags: [Clientes]
+      summary: Remover contato
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: contatoId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Removido
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /relatorios:
+    get:
+      tags: [Relatórios]
+      summary: Listar relatórios
+      description: |
+        Filtros opcionais: `clienteId`, `criadoPorId`, `dataInicio`, `dataFim`, `impresso` (`true`/`false`).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: clienteId
+          in: query
+          schema: { type: integer }
+        - name: criadoPorId
+          in: query
+          schema: { type: integer }
+        - name: dataInicio
+          in: query
+          schema: { type: string, format: date }
+        - name: dataFim
+          in: query
+          schema: { type: string, format: date }
+        - name: impresso
+          in: query
+          schema: { type: string, enum: ["true", "false"] }
+      responses:
+        "200":
+          description: Lista de relatórios
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    post:
+      tags: [Relatórios]
+      summary: Criar relatório
+      description: O campo `criadoPorId` é preenchido com o usuário do JWT.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRelatorioRequest"
+      responses:
+        "201":
+          description: Relatório criado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /relatorios/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Relatórios]
+      summary: Buscar relatório por id
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Relatório
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    put:
+      tags: [Relatórios]
+      summary: Atualizar relatório
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRelatorioRequest"
+      responses:
+        "200":
+          description: Atualizado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    delete:
+      tags: [Relatórios]
+      summary: Remover relatório
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Removido
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /checklists:
+    get:
+      tags: [Checklists]
+      summary: Listar checklists
+      description: Autenticado (qualquer role).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista
+    post:
+      tags: [Checklists]
+      summary: Criar checklist
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChecklistRequest"
+      responses:
+        "201":
+          description: Criado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403": { description: Acesso negado }
+
+  /checklists/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Checklists]
+      summary: Buscar checklist por id
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Checklist
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    put:
+      tags: [Checklists]
+      summary: Atualizar checklist
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateChecklistRequest"
+      responses:
+        "200":
+          description: Atualizado
+        "403": { description: Acesso negado }
+    delete:
+      tags: [Checklists]
+      summary: Remover checklist
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Removido
+        "403": { description: Acesso negado }
+
+  /setores:
+    get:
+      tags: [Setores]
+      summary: Listar setores
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista
+    post:
+      tags: [Setores]
+      summary: Criar setor
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSetorRequest"
+      responses:
+        "201":
+          description: Criado
+        "403": { description: Acesso negado }
+
+  /setores/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Setores]
+      summary: Buscar setor por id
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Setor
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    put:
+      tags: [Setores]
+      summary: Atualizar setor
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSetorRequest"
+      responses:
+        "200":
+          description: Atualizado
+        "403": { description: Acesso negado }
+    delete:
+      tags: [Setores]
+      summary: Remover setor
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Removido
+        "403": { description: Acesso negado }
+
+  /ramos:
+    get:
+      tags: [Ramos]
+      summary: Listar ramos de atividade
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista
+    post:
+      tags: [Ramos]
+      summary: Criar ramo
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRamoRequest"
+      responses:
+        "201":
+          description: Criado
+        "403": { description: Acesso negado }
+
+  /ramos/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Ramos]
+      summary: Buscar ramo por id (inclui clientes)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Ramo
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    put:
+      tags: [Ramos]
+      summary: Atualizar ramo
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRamoRequest"
+      responses:
+        "200":
+          description: Atualizado
+        "403": { description: Acesso negado }
+    delete:
+      tags: [Ramos]
+      summary: Remover ramo
+      description: Somente ADMIN.
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Removido
+        "403": { description: Acesso negado }
+
+  /configuracoes:
+    get:
+      tags: [Configurações]
+      summary: Obter configuração (janela de horário de login)
+      description: Retorna um objeto ou `null` se ainda não existir registro.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Configuração ou null se ainda não existir registro
+          content:
+            application/json:
+              schema:
+                nullable: true
+                allOf:
+                  - $ref: "#/components/schemas/ConfiguracaoRecord"
+    put:
+      tags: [Configurações]
+      summary: Criar/atualizar configuração
+      description: Somente ADMIN. Afeta o middleware de horário do login.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfiguracaoUpsertRequest"
+      responses:
+        "200":
+          description: Salvo
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403": { description: Acesso negado }

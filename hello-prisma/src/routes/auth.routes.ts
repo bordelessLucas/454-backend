@@ -15,8 +15,12 @@ const configuracaoService = new ConfiguracaoService(prisma);
 router.post(
   "/login",
   async (req: Request, res: Response, next: NextFunction) => {
-    const config = await configuracaoService.get();
-    await horarioMiddleware(req, res, next, config);
+    try {
+      const config = await configuracaoService.get();
+      await horarioMiddleware(req, res, next, config);
+    } catch (error) {
+      next(error);
+    }
   },
   AuthController.login,
 );

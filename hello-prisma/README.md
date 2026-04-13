@@ -11,6 +11,7 @@ src/
 ├── routes/           # Definição de rotas
 ├── middlewares/      # Auth, Role e Horário
 ├── types/            # DTOs e interfaces
+├── docs/             # OpenAPI (openapi.yaml) + carregador
 └── lib/              # Prisma client
 ```
 
@@ -22,6 +23,23 @@ src/
 - PostgreSQL
 - JWT Authentication
 - Bcrypt
+- OpenAPI 3 + Swagger UI (`swagger-ui-express`)
+
+## Documentação da API (Swagger)
+
+Com a API rodando:
+
+- **UI:** [http://localhost:3000/api-docs](http://localhost:3000/api-docs) (ajuste a porta se `PORT` for outra)
+- **JSON:** [http://localhost:3000/openapi.json](http://localhost:3000/openapi.json)
+
+Na interface, use **Authorize** e informe `Bearer <token>` obtido em `POST /auth/login`.
+
+A especificação fonte está em `src/docs/openapi.yaml` (copiada para `dist/docs/` no `npm run build`).
+
+## Pré-requisitos
+
+- Node.js 20+ (recomendado: 22 LTS)
+- Docker Desktop (para subir o PostgreSQL local)
 
 ## Instalação
 
@@ -37,10 +55,16 @@ npm install
 cp .env.example .env
 ```
 
+No PowerShell (Windows):
+
+```powershell
+Copy-Item .env.example .env
+```
+
 2. Configure as variáveis no `.env`:
 
 ```env
-DATABASE_URL="postgresql://usuario:senha@localhost:5432/banco?schema=public"
+DATABASE_URL="postgresql://linq:linqq608U@localhost:5432/polls?schema=public"
 JWT_SECRET="sua-chave-secreta-aqui"
 PORT=3000
 ```
