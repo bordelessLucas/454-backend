@@ -8,13 +8,16 @@ import type {
 export class ClienteService {
   constructor(private prisma: PrismaClient) {}
 
-  async create(data: CreateClienteDTO) {
+  async create(data: CreateClienteDTO, scopedUnidadeId: number) {
     const { contato, contrato, ...clienteData } = data;
 
     return this.prisma.$transaction(async (tx) => {
       // Criar cliente
       const cliente = await tx.cliente.create({
-        data: clienteData,
+        data: {
+          ...clienteData,
+          unidadeId: scopedUnidadeId,
+        },
         include: {
           ramoAtividade: true,
         },
@@ -48,8 +51,8 @@ export class ClienteService {
     });
   }
 
-  async findAll(filters?: ClienteFilters) {
-    const where: Record<string, unknown> = {};
+  async findAll(scopedUnidadeId: number, filters?: ClienteFilters) {
+    const where: Record<string, unknown> = { unidadeId: scopedUnidadeId };
 
     if (filters?.nomeFantasia) {
       where.nomeFantasia = {
@@ -77,9 +80,9 @@ export class ClienteService {
     });
   }
 
-  async findById(id: number) {
-    return this.prisma.cliente.findUnique({
-      where: { id },
+  async findById(id: number, scopedUnidadeId: number) {
+    return this.prisma.cliente.findFirst({
+      where: { id, unidadeId: scopedUnidadeId },
       include: {
         ramoAtividade: true,
         contatos: true,
@@ -88,10 +91,19 @@ export class ClienteService {
     });
   }
 
-  async update(id: number, data: UpdateClienteDTO) {
+  async update(id: number, data: UpdateClienteDTO, scopedUnidadeId: number) {
     const { contato, contrato, ...clienteData } = data;
 
     return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.cliente.findFirst({
+        where: { id, unidadeId: scopedUnidadeId },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        throw new Error("Cliente não encontrado");
+      }
+
       // Atualizar cliente
       const cliente = await tx.cliente.update({
         where: { id },
@@ -138,7 +150,16 @@ export class ClienteService {
     });
   }
 
-  async delete(id: number) {
+  async delete(id: number, scopedUnidadeId: number) {
+    const existing = await this.prisma.cliente.findFirst({
+      where: { id, unidadeId: scopedUnidadeId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new Error("Cliente não encontrado");
+    }
+
     return this.prisma.cliente.delete({
       where: { id },
     });
@@ -146,6 +167,7 @@ export class ClienteService {
 
   async createContato(
     clienteId: number,
+    scopedUnidadeId: number,
     data: {
       nome: string;
       cargo?: string;
@@ -154,6 +176,15 @@ export class ClienteService {
       principal?: boolean;
     },
   ) {
+    const cliente = await this.prisma.cliente.findFirst({
+      where: { id: clienteId, unidadeId: scopedUnidadeId },
+      select: { id: true },
+    });
+
+    if (!cliente) {
+      throw new Error("Cliente não encontrado");
+    }
+
     return this.prisma.clienteContato.create({
       data: {
         ...data,
@@ -164,6 +195,7 @@ export class ClienteService {
 
   async updateContato(
     id: number,
+    scopedUnidadeId: number,
     data: {
       nome?: string;
       cargo?: string;
@@ -172,13 +204,31 @@ export class ClienteService {
       principal?: boolean;
     },
   ) {
+    const contato = await this.prisma.clienteContato.findFirst({
+      where: { id, cliente: { unidadeId: scopedUnidadeId } },
+      select: { id: true },
+    });
+
+    if (!contato) {
+      throw new Error("Contato não encontrado");
+    }
+
     return this.prisma.clienteContato.update({
       where: { id },
       data,
     });
   }
 
-  async deleteContato(id: number) {
+  async deleteContato(id: number, scopedUnidadeId: number) {
+    const contato = await this.prisma.clienteContato.findFirst({
+      where: { id, cliente: { unidadeId: scopedUnidadeId } },
+      select: { id: true },
+    });
+
+    if (!contato) {
+      throw new Error("Contato não encontrado");
+    }
+
     return this.prisma.clienteContato.delete({
       where: { id },
     });

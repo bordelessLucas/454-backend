@@ -156,6 +156,7 @@ async function main() {
   // Criar um cliente exemplo
   const cliente = await prisma.cliente.create({
     data: {
+      unidadeId: 1,
       razaoSocial: "TechSolutions Sistemas LTDA",
       nomeFantasia: "TechSolutions",
       cnpj: "12.345.678/0001-90",
@@ -172,6 +173,16 @@ async function main() {
   });
 
   console.log("Cliente criado:", cliente);
+
+  await prisma.user.update({
+    where: { id: admin.id },
+    data: { clienteId: cliente.id, unidadeId: cliente.unidadeId },
+  });
+
+  await prisma.user.update({
+    where: { id: tecnico.id },
+    data: { clienteId: cliente.id, unidadeId: cliente.unidadeId },
+  });
 
   // Criar um contato para o cliente
   const contato = await prisma.clienteContato.create({

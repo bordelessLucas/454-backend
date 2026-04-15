@@ -13,9 +13,19 @@ const relatorioService = new RelatorioService(prisma);
 export class RelatorioController {
   static async create(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const data: CreateRelatorioDTO = req.body;
       const criadoPorId = req.user?.id ?? 0;
-      const relatorio = await relatorioService.create(data, criadoPorId);
+      const relatorio = await relatorioService.create(
+        data,
+        criadoPorId,
+        scopedUnidadeId,
+      );
       res.status(201).json(relatorio);
     } catch (error) {
       res.status(400).json({
@@ -27,6 +37,12 @@ export class RelatorioController {
 
   static async findAll(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const filters: RelatorioFilters = {};
 
       const clienteId = req.query["clienteId"];
@@ -56,7 +72,7 @@ export class RelatorioController {
         filters.impresso = false;
       }
 
-      const relatorios = await relatorioService.findAll(filters);
+      const relatorios = await relatorioService.findAll(filters, scopedUnidadeId);
 
       res.json(relatorios);
     } catch (error) {
@@ -66,8 +82,14 @@ export class RelatorioController {
 
   static async findById(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const id = parseInt(req.params["id"] ?? "0");
-      const relatorio = await relatorioService.findById(id);
+      const relatorio = await relatorioService.findById(id, scopedUnidadeId);
 
       if (!relatorio) {
         res.status(404).json({ error: "Relatório não encontrado" });
@@ -82,9 +104,15 @@ export class RelatorioController {
 
   static async update(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const id = parseInt(req.params["id"] ?? "0");
       const data: UpdateRelatorioDTO = req.body;
-      const relatorio = await relatorioService.update(id, data);
+      const relatorio = await relatorioService.update(id, data, scopedUnidadeId);
       res.json(relatorio);
     } catch (error) {
       res.status(400).json({
@@ -98,8 +126,14 @@ export class RelatorioController {
 
   static async delete(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const id = parseInt(req.params["id"] ?? "0");
-      await relatorioService.delete(id);
+      await relatorioService.delete(id, scopedUnidadeId);
       res.status(204).send();
     } catch (error) {
       res.status(400).json({

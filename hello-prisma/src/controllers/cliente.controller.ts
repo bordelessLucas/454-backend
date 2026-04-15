@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { ClienteService } from "../services/cliente.service.js";
 import { prisma } from "../lib/prisma.js";
 import type {
@@ -6,14 +6,21 @@ import type {
   UpdateClienteDTO,
   ClienteFilters,
 } from "../types/dtos.js";
+import type { AuthRequest } from "../middlewares/auth.middleware.js";
 
 const clienteService = new ClienteService(prisma);
 
 export class ClienteController {
-  static async create(req: Request, res: Response): Promise<void> {
+  static async create(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const data: CreateClienteDTO = req.body;
-      const cliente = await clienteService.create(data);
+      const cliente = await clienteService.create(data, scopedUnidadeId);
       res.status(201).json(cliente);
     } catch (error) {
       res.status(400).json({
@@ -22,8 +29,14 @@ export class ClienteController {
     }
   }
 
-  static async findAll(req: Request, res: Response): Promise<void> {
+  static async findAll(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const filters: ClienteFilters = {};
 
       const nomeFantasia = req.query["nomeFantasia"];
@@ -44,7 +57,7 @@ export class ClienteController {
         filters.ramoAtividadeId = Number(ramoAtividadeId);
       }
 
-      const clientes = await clienteService.findAll(filters);
+      const clientes = await clienteService.findAll(scopedUnidadeId, filters);
 
       res.json(clientes);
     } catch (error) {
@@ -52,10 +65,16 @@ export class ClienteController {
     }
   }
 
-  static async findById(req: Request, res: Response): Promise<void> {
+  static async findById(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const id = parseInt(req.params["id"] ?? "0");
-      const cliente = await clienteService.findById(id);
+      const cliente = await clienteService.findById(id, scopedUnidadeId);
 
       if (!cliente) {
         res.status(404).json({ error: "Cliente não encontrado" });
@@ -68,11 +87,17 @@ export class ClienteController {
     }
   }
 
-  static async update(req: Request, res: Response): Promise<void> {
+  static async update(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const id = parseInt(req.params["id"] ?? "0");
       const data: UpdateClienteDTO = req.body;
-      const cliente = await clienteService.update(id, data);
+      const cliente = await clienteService.update(id, data, scopedUnidadeId);
       res.json(cliente);
     } catch (error) {
       res.status(400).json({
@@ -82,10 +107,16 @@ export class ClienteController {
     }
   }
 
-  static async delete(req: Request, res: Response): Promise<void> {
+  static async delete(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const id = parseInt(req.params["id"] ?? "0");
-      await clienteService.delete(id);
+      await clienteService.delete(id, scopedUnidadeId);
       res.status(204).send();
     } catch (error) {
       res.status(400).json({
@@ -95,11 +126,21 @@ export class ClienteController {
     }
   }
 
-  static async createContato(req: Request, res: Response): Promise<void> {
+  static async createContato(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const clienteId = parseInt(req.params["id"] ?? "0");
       const data = req.body;
-      const contato = await clienteService.createContato(clienteId, data);
+      const contato = await clienteService.createContato(
+        clienteId,
+        scopedUnidadeId,
+        data,
+      );
       res.status(201).json(contato);
     } catch (error) {
       res.status(400).json({
@@ -108,11 +149,21 @@ export class ClienteController {
     }
   }
 
-  static async updateContato(req: Request, res: Response): Promise<void> {
+  static async updateContato(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const contatoId = parseInt(req.params["contatoId"] ?? "0");
       const data = req.body;
-      const contato = await clienteService.updateContato(contatoId, data);
+      const contato = await clienteService.updateContato(
+        contatoId,
+        scopedUnidadeId,
+        data,
+      );
       res.json(contato);
     } catch (error) {
       res.status(400).json({
@@ -122,10 +173,16 @@ export class ClienteController {
     }
   }
 
-  static async deleteContato(req: Request, res: Response): Promise<void> {
+  static async deleteContato(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
       const contatoId = parseInt(req.params["contatoId"] ?? "0");
-      await clienteService.deleteContato(contatoId);
+      await clienteService.deleteContato(contatoId, scopedUnidadeId);
       res.status(204).send();
     } catch (error) {
       res.status(400).json({

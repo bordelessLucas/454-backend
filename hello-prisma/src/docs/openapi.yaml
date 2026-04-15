@@ -69,6 +69,8 @@ components:
             username: { type: string }
             nome: { type: string }
             role: { type: string, enum: [ADMIN, TECNICO] }
+            clienteId: { type: integer, nullable: true }
+            unidadeId: { type: integer, nullable: true }
 
     ResetPasswordRequest:
       type: object
@@ -251,13 +253,22 @@ components:
 
     CreateRelatorioRequest:
       type: object
-      required: [clienteId, dataVisita, modalidadeServico, tecnicos, setores, checklists]
+      required: [clienteId, dataVisita, tecnicos, setores, checklists]
+      anyOf:
+        - required: [modalidade]
+        - required: [modalidadeServico]
       properties:
         clienteId: { type: integer }
         contatoId: { type: integer }
         dataVisita: { type: string, format: date-time }
+        modalidade:
+          allOf:
+            - $ref: "#/components/schemas/ModalidadeServico"
+          description: Alias aceito para `modalidadeServico` (use apenas um dos dois campos).
         modalidadeServico:
-          $ref: "#/components/schemas/ModalidadeServico"
+          allOf:
+            - $ref: "#/components/schemas/ModalidadeServico"
+          description: Campo legado; pode ser enviado no lugar de `modalidade`.
         observacoes: { type: string }
         tecnicos:
           type: array
@@ -282,8 +293,14 @@ components:
         clienteId: { type: integer }
         contatoId: { type: integer }
         dataVisita: { type: string, format: date-time }
+        modalidade:
+          allOf:
+            - $ref: "#/components/schemas/ModalidadeServico"
+          description: Alias aceito para `modalidadeServico` (use apenas um dos dois campos).
         modalidadeServico:
-          $ref: "#/components/schemas/ModalidadeServico"
+          allOf:
+            - $ref: "#/components/schemas/ModalidadeServico"
+          description: Campo legado; pode ser enviado no lugar de `modalidade`.
         observacoes: { type: string }
         impresso: { type: boolean }
         tecnicos:
@@ -410,10 +427,10 @@ paths:
   /auth/reset-password:
     post:
       tags: [Auth]
-      summary: Redefinir senha por username
-      description: |
-        **Atenção:** rota pública no código atual — não exige JWT. Em produção, restrinja ou proteja (ex. token administrativo).
-      security: []
+      summary: Redefinir senha por username (somente ADMIN)
+      description: Exige autenticação JWT com perfil ADMIN.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -428,6 +445,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/ResetPasswordResponse"
         "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403":
+          description: Acesso negado (apenas ADMIN)
           content:
             application/json:
               schema:
@@ -583,6 +611,7 @@ paths:
       tags: [Clientes]
       summary: Listar clientes
       description: |
+        Isolado por organização: retorna apenas clientes da `unidadeId` do token JWT.
         Filtros opcionais (query): `nomeFantasia`, `cnpj`, `ramoAtividadeId` (número).
       security:
         - bearerAuth: []
@@ -757,7 +786,8 @@ paths:
       tags: [Relatórios]
       summary: Listar relatórios
       description: |
-        Filtros opcionais: `clienteId`, `criadoPorId`, `dataInicio`, `dataFim`, `impresso` (`true`/`false`).
+        Isolado por organização: retorna apenas relatórios da `unidadeId` presente no token JWT.
+        Filtros opcionais: `criadoPorId`, `dataInicio`, `dataFim`, `impresso` (`true`/`false`).
       security:
         - bearerAuth: []
       parameters:
@@ -787,7 +817,12 @@ paths:
     post:
       tags: [Relatórios]
       summary: Criar relatório
-      description: O campo `criadoPorId` é preenchido com o usuário do JWT.
+      description: |
+        O campo `criadoPorId` é preenchido com o usuário do JWT.
+        Regra de negócio da modalidade:
+        - `Contrato - ...` exige contrato ativo do cliente na `dataVisita`.
+        - `Sem contrato - ...` exige ausência de contrato ativo na `dataVisita`.
+        A criação é transacional: o relatório só é persistido se todos os vínculos filhos (setores, horários e checklists) forem salvos com sucesso.
       security:
         - bearerAuth: []
       requestBody:

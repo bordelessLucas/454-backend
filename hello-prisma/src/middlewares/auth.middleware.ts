@@ -8,7 +8,9 @@ export type AuthUser = {
   id: number;
   username: string;
   role: string;
-}
+  clienteId: number | null;
+  unidadeId: number | null;
+};
 
 export type AuthRequest = Request & {
   user?: AuthUser;
@@ -59,6 +61,14 @@ export const authMiddleware = (
       id: decoded["id"],
       username: decoded["username"],
       role: decoded["role"],
+      clienteId:
+        typeof decoded["clienteId"] === "number" ? decoded["clienteId"] : null,
+      unidadeId:
+        typeof decoded["unidadeId"] === "number"
+          ? decoded["unidadeId"]
+          : typeof decoded["clienteId"] === "number"
+            ? decoded["clienteId"]
+            : null,
     };
 
     (req as AuthRequest).user = user;

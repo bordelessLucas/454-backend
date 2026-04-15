@@ -1,10 +1,21 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 export class ConfiguracaoService {
   constructor(private prisma: PrismaClient) {}
 
   async get() {
-    return this.prisma.configuracao.findFirst();
+    try {
+      return await this.prisma.configuracao.findFirst();
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2021"
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
   }
 
   async upsert(dataInicio: Date, dataFim: Date) {

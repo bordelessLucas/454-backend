@@ -10,9 +10,35 @@ const SALT_ROUNDS = 10;
 export class AuthService {
   constructor(private prisma: PrismaClient) {}
 
+  private async resolveUnidadeIdFromCliente(
+    clienteId: number | undefined,
+  ): Promise<number | null> {
+    if (clienteId === undefined) {
+      return null;
+    }
+
+    const cliente = await this.prisma.cliente.findUnique({
+      where: { id: clienteId },
+      select: { unidadeId: true },
+    });
+
+    if (!cliente) {
+      throw new Error("Cliente não encontrado");
+    }
+
+    return cliente.unidadeId;
+  }
+
   async login(data: LoginDTO): Promise<{
     token: string;
-    user: { id: number; username: string; nome: string; role: string };
+    user: {
+      id: number;
+      username: string;
+      nome: string;
+      role: string;
+      clienteId: number | null;
+      unidadeId: number | null;
+    };
   }> {
     const user = await this.prisma.user.findUnique({
       where: { username: data.username },
@@ -29,7 +55,13 @@ export class AuthService {
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        clienteId: user.clienteId,
+        unidadeId: user.unidadeId,
+      },
       JWT_SECRET,
       { expiresIn: "8h" },
     );
@@ -41,6 +73,8 @@ export class AuthService {
         username: user.username,
         nome: user.nome,
         role: user.role,
+        clienteId: user.clienteId,
+        unidadeId: user.unidadeId,
       },
     };
   }
@@ -60,6 +94,8 @@ export class AuthService {
       userData.clienteId = data.clienteId;
     }
 
+    userData.unidadeId = await this.resolveUnidadeIdFromCliente(data.clienteId);
+
     return this.prisma.user.create({
       data: userData,
       select: {
@@ -69,6 +105,7 @@ export class AuthService {
         email: true,
         role: true,
         clienteId: true,
+        unidadeId: true,
         ativo: true,
         createdAt: true,
       },
@@ -84,6 +121,7 @@ export class AuthService {
         email: true,
         role: true,
         clienteId: true,
+        unidadeId: true,
         ativo: true,
         createdAt: true,
       },
@@ -115,6 +153,7 @@ export class AuthService {
         email: true,
         role: true,
         clienteId: true,
+        unidadeId: true,
         ativo: true,
         createdAt: true,
       },
@@ -122,9 +161,15 @@ export class AuthService {
   }
 
   async updateUser(id: number, data: UpdateUserDTO) {
+    const updateData: Prisma.UserUncheckedUpdateInput = { ...data };
+
+    if (data.clienteId !== undefined) {
+      updateData.unidadeId = await this.resolveUnidadeIdFromCliente(data.clienteId);
+    }
+
     return this.prisma.user.update({
       where: { id },
-      data,
+      data: updateData,
       select: {
         id: true,
         username: true,
@@ -132,6 +177,7 @@ export class AuthService {
         email: true,
         role: true,
         clienteId: true,
+        unidadeId: true,
         ativo: true,
         updatedAt: true,
       },
@@ -165,6 +211,7 @@ export class AuthService {
         email: true,
         role: true,
         clienteId: true,
+        unidadeId: true,
         ativo: true,
         updatedAt: true,
       },
@@ -192,6 +239,7 @@ export class AuthService {
         email: true,
         role: true,
         clienteId: true,
+        unidadeId: true,
         ativo: true,
         updatedAt: true,
       },
