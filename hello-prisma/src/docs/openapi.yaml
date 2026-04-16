@@ -325,13 +325,53 @@ components:
       properties:
         nome: { type: string }
         descricao: { type: string }
+        indice:
+          type: integer
+          minimum: 0
+        itens:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItemPayload"
 
     UpdateChecklistRequest:
       type: object
       properties:
         nome: { type: string }
         descricao: { type: string }
+        indice:
+          type: integer
+          minimum: 0
         ativo: { type: boolean }
+        itens:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItemPayload"
+
+    ChecklistItemPayload:
+      type: object
+      required: [texto, ordem]
+      properties:
+        texto: { type: string }
+        ordem:
+          type: integer
+          minimum: 0
+
+    ReorderChecklistRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [id, indice]
+            properties:
+              id:
+                type: integer
+              indice:
+                type: integer
+                minimum: 0
 
     CreateSetorRequest:
       type: object
@@ -891,6 +931,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorMessage"
 
+  /relatorios/{id}/pdf-layout:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Relatórios]
+      summary: Gerar layout de relatório para PDF
+      description: Retorna HTML com cabeçalho profissional e rodapé para assinatura.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Layout pronto para renderização em PDF
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
   /checklists:
     get:
       tags: [Checklists]
@@ -916,6 +977,29 @@ paths:
       responses:
         "201":
           description: Criado
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        "403": { description: Acesso negado }
+
+  /checklists/ordenacao:
+    patch:
+      tags: [Checklists]
+      summary: Reordenar checklists em massa
+      description: Atualiza o índice de vários itens para suportar drag-and-drop.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderChecklistRequest"
+      responses:
+        "200":
+          description: Lista reordenada
         "400":
           content:
             application/json:

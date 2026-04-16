@@ -1,6 +1,10 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { ChecklistService } from "../services/checklist.service.js";
-import type { CreateChecklistDTO, UpdateChecklistDTO } from "../types/dtos.js";
+import type {
+  CreateChecklistDTO,
+  ReorderChecklistDTO,
+  UpdateChecklistDTO,
+} from "../types/dtos.js";
 import { prisma } from "../lib/prisma.js";
 
 const checklistService = new ChecklistService(prisma);
@@ -25,16 +29,24 @@ export class ChecklistController {
     }
   }
 
-  static async findAll(_req: Request, res: Response): Promise<void> {
+  static async findAll(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const checklists = await checklistService.findAll();
       res.json(checklists);
     } catch (error) {
-      res.status(500).json({ error: "Erro ao buscar checklists" });
+      next(error);
     }
   }
 
-  static async findById(req: Request, res: Response): Promise<void> {
+  static async findById(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const id = parseInt(req.params["id"] ?? "0");
       const checklist = await checklistService.findById(id);
@@ -46,7 +58,7 @@ export class ChecklistController {
 
       res.json(checklist);
     } catch (error) {
-      res.status(500).json({ error: "Erro ao buscar checklist" });
+      next(error);
     }
   }
 
@@ -75,6 +87,47 @@ export class ChecklistController {
       res.status(400).json({
         error:
           error instanceof Error ? error.message : "Erro ao deletar checklist",
+      });
+    }
+  }
+
+  static async reorder(req: Request, res: Response): Promise<void> {
+    try {
+      const payload = req.body as ReorderChecklistDTO;
+      const items = payload.items;
+
+      if (!Array.isArray(items) || items.length === 0) {
+        res.status(400).json({
+          error:
+            "Body inválido. Envie { items: [{ id: number, indice: number }] }",
+        });
+        return;
+      }
+
+      const hasInvalid = items.some(
+        (item) =>
+          typeof item.id !== "number" ||
+          !Number.isInteger(item.id) ||
+          typeof item.indice !== "number" ||
+          !Number.isInteger(item.indice) ||
+          item.indice < 0,
+      );
+
+      if (hasInvalid) {
+        res.status(400).json({
+          error: "Cada item deve conter id e indice inteiros válidos",
+        });
+        return;
+      }
+
+      const checklists = await checklistService.reorder(items);
+      res.json(checklists);
+    } catch (error) {
+      res.status(400).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro ao reordenar checklists",
       });
     }
   }

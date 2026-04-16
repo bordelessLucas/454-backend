@@ -94,12 +94,30 @@ export interface UpdateClienteDTO {
 export interface CreateChecklistDTO {
   nome: string;
   descricao?: string;
+  indice?: number;
+  itens?: ChecklistItemPayloadDTO[];
 }
 
 export interface UpdateChecklistDTO {
   nome?: string;
   descricao?: string;
+  indice?: number;
   ativo?: boolean;
+  itens?: ChecklistItemPayloadDTO[];
+}
+
+export interface ChecklistItemPayloadDTO {
+  texto: string;
+  ordem: number;
+}
+
+export interface ReorderChecklistItemDTO {
+  id: number;
+  indice: number;
+}
+
+export interface ReorderChecklistDTO {
+  items: ReorderChecklistItemDTO[];
 }
 
 export interface CreateRelatorioDTO {

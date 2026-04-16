@@ -58,9 +58,16 @@ app.use("/setores", setoresRouter);
 app.use("/ramos", ramosRouter);
 app.use("/configuracoes", configuracoesRouter);
 
-app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  const message = error instanceof Error ? error.message : "Erro interno do servidor";
-  console.error("[ERROR]", message);
+app.use((error: unknown, req: Request, res: Response, _next: NextFunction) => {
+  const message =
+    error instanceof Error ? error.message : "Erro interno do servidor";
+  const stack = error instanceof Error ? error.stack : undefined;
+  console.error("[ERROR]", {
+    method: req.method,
+    path: req.originalUrl,
+    message,
+    stack,
+  });
   res.status(500).json({ error: message });
 });
 

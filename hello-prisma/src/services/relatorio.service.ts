@@ -32,6 +32,55 @@ function parseHorario(dataVisita: string, horario: string): Date {
   return dateTime;
 }
 
+function parseDateFilter(dateValue: string, endOfDay = false): Date {
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Data inválida para filtro: ${dateValue}`);
+  }
+
+  if (endOfDay) {
+    parsed.setHours(23, 59, 59, 999);
+  } else {
+    parsed.setHours(0, 0, 0, 0);
+  }
+
+  return parsed;
+}
+
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatDateTime(date: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function formatTime(date: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 const MODALIDADES_SERVICO = [
   "Sem contrato - remoto",
   "Sem contrato - local",
@@ -91,6 +140,32 @@ function validarModalidadePorContrato(
     );
   }
 }
+
+type RelatorioPdfData = Prisma.RelatorioGetPayload<{
+  include: {
+    cliente: true;
+    contato: true;
+    criadoPor: {
+      select: {
+        id: true;
+        nome: true;
+        username: true;
+      };
+    };
+    tecnicos: true;
+    setores: {
+      include: {
+        setor: true;
+      };
+    };
+    horarios: true;
+    checklists: {
+      include: {
+        checklist: true;
+      };
+    };
+  };
+}>;
 
 export class RelatorioService {
   constructor(private prisma: PrismaClient) {}
@@ -249,8 +324,9 @@ export class RelatorioService {
   }
 
   async findAll(filters: RelatorioFilters | undefined, scopedUnidadeId: number) {
-    const where: Prisma.RelatorioWhereInput = {};
-    where.cliente = { unidadeId: scopedUnidadeId };
+    const where: Prisma.RelatorioWhereInput = {
+      cliente: { unidadeId: scopedUnidadeId },
+    };
 
     if (filters?.clienteId !== undefined) {
       where.clienteId = filters.clienteId;
@@ -268,11 +344,19 @@ export class RelatorioService {
       where.dataVisita = {};
 
       if (filters.dataInicio) {
-        where.dataVisita.gte = new Date(filters.dataInicio);
+        where.dataVisita.gte = parseDateFilter(filters.dataInicio);
       }
 
       if (filters.dataFim) {
-        where.dataVisita.lte = new Date(filters.dataFim);
+        where.dataVisita.lte = parseDateFilter(filters.dataFim, true);
+      }
+
+      if (
+        where.dataVisita.gte !== undefined &&
+        where.dataVisita.lte !== undefined &&
+        where.dataVisita.gte > where.dataVisita.lte
+      ) {
+        throw new Error("Filtro inválido: dataInicio não pode ser maior que dataFim");
       }
     }
 
@@ -329,6 +413,163 @@ export class RelatorioService {
         },
       },
     });
+  }
+
+  async getPdfLayout(id: number, scopedUnidadeId: number) {
+    const relatorio = await this.prisma.relatorio.findFirst({
+      where: { id, cliente: { unidadeId: scopedUnidadeId } },
+      include: {
+        cliente: true,
+        contato: true,
+        criadoPor: {
+          select: {
+            id: true,
+            nome: true,
+            username: true,
+          },
+        },
+        tecnicos: true,
+        setores: {
+          include: {
+            setor: true,
+          },
+        },
+        horarios: true,
+        checklists: {
+          include: {
+            checklist: true,
+          },
+        },
+      },
+    });
+
+    if (!relatorio) {
+      throw new Error("Relatório não encontrado");
+    }
+
+    await this.prisma.relatorio.update({
+      where: { id: relatorio.id },
+      data: { impresso: true },
+    });
+
+    return {
+      fileName: `relatorio-${relatorio.id}.pdf`,
+      html: this.buildPdfHtml(relatorio),
+    };
+  }
+
+  private buildPdfHtml(relatorio: RelatorioPdfData): string {
+    const tecnicos = relatorio.tecnicos
+      .map((tecnico) => `<li>${escapeHtml(tecnico.nome)}</li>`)
+      .join("");
+    const setores = relatorio.setores
+      .map(
+        (setor) => `
+          <tr>
+            <td>${escapeHtml(setor.setor.nome)}</td>
+            <td>${escapeHtml(setor.observacao ?? "-")}</td>
+          </tr>
+        `,
+      )
+      .join("");
+    const horarios = relatorio.horarios
+      .map(
+        (horario) =>
+          `${formatTime(horario.horaChegada)} - ${formatTime(horario.horaSaida)}`,
+      )
+      .join(" | ");
+    const checklists = relatorio.checklists
+      .sort((a, b) => a.checklist.indice - b.checklist.indice)
+      .map((item) => `<li>${escapeHtml(item.checklist.nome)}</li>`)
+      .join("");
+
+    return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Relatório ${relatorio.id}</title>
+    <style>
+      body { font-family: Arial, sans-serif; color: #1f2937; margin: 0; padding: 24px; }
+      .header { border-bottom: 2px solid #111827; padding-bottom: 12px; margin-bottom: 18px; }
+      .header h1 { margin: 0; font-size: 20px; }
+      .muted { color: #6b7280; font-size: 12px; }
+      .card { border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+      .card h2 { margin: 0 0 8px 0; font-size: 14px; text-transform: uppercase; color: #111827; }
+      .row { margin: 2px 0; font-size: 13px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; vertical-align: top; }
+      th { background-color: #f3f4f6; }
+      ul { margin: 6px 0 0 18px; padding: 0; }
+      .footer { margin-top: 36px; }
+      .assinaturas { display: flex; gap: 24px; margin-top: 24px; }
+      .assinatura { flex: 1; font-size: 12px; text-align: center; }
+      .linha { border-top: 1px solid #111827; margin-bottom: 6px; height: 22px; }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Relatório Técnico de Visita</h1>
+      <div class="muted">Documento gerado em ${formatDateTime(new Date())}</div>
+    </div>
+
+    <div class="card">
+      <h2>Dados gerais</h2>
+      <div class="row"><strong>Relatório:</strong> #${relatorio.id}</div>
+      <div class="row"><strong>Cliente:</strong> ${escapeHtml(relatorio.cliente.nomeFantasia)}</div>
+      <div class="row"><strong>Contato:</strong> ${escapeHtml(relatorio.contato?.nome ?? "-")}</div>
+      <div class="row"><strong>Data da visita:</strong> ${formatDate(relatorio.dataVisita)}</div>
+      <div class="row"><strong>Modalidade:</strong> ${escapeHtml(relatorio.modalidadeServico ?? "-")}</div>
+      <div class="row"><strong>Criado por:</strong> ${escapeHtml(relatorio.criadoPor.nome)}</div>
+    </div>
+
+    <div class="card">
+      <h2>Técnicos e horários</h2>
+      <div class="row"><strong>Técnicos:</strong></div>
+      <ul>${tecnicos || "<li>-</li>"}</ul>
+      <div class="row"><strong>Horários:</strong> ${escapeHtml(horarios || "-")}</div>
+    </div>
+
+    <div class="card">
+      <h2>Setores avaliados</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Setor</th>
+            <th>Observação</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${setores || "<tr><td colspan='2'>Sem setores vinculados</td></tr>"}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Checklist aplicado</h2>
+      <ul>${checklists || "<li>Sem itens vinculados</li>"}</ul>
+    </div>
+
+    <div class="card">
+      <h2>Observações</h2>
+      <div class="row">${escapeHtml(relatorio.observacoes ?? "-")}</div>
+    </div>
+
+    <div class="footer">
+      <div class="assinaturas">
+        <div class="assinatura">
+          <div class="linha"></div>
+          Técnico responsável
+        </div>
+        <div class="assinatura">
+          <div class="linha"></div>
+          Responsável pelo cliente
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+    `.trim();
   }
 
   async update(id: number, data: UpdateRelatorioInput, scopedUnidadeId: number) {

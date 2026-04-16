@@ -14,6 +14,7 @@ router.get("/:id", ChecklistController.findById);
 router.use(roleMiddleware("ADMIN"));
 
 router.post("/", ChecklistController.create);
+router.patch("/ordenacao", ChecklistController.reorder);
 router.put("/:id", ChecklistController.update);
 router.delete("/:id", ChecklistController.delete);
 

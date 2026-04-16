@@ -123,13 +123,28 @@ model Checklist {
   id        Int      @id @default(autoincrement())
   nome      String   @unique
   descricao String?
+  indice    Int      @default(0)
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   relatorioChecklists RelatorioChecklist[]
+  itens               ChecklistItem[]
 
   @@map("checklist")
+}
+
+model ChecklistItem {
+  id          Int      @id @default(autoincrement())
+  checklistId Int      @map("checklist_id")
+  texto       String
+  ordem       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@map("checklist_itens")
 }
 
 model Relatorio {

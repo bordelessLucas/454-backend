@@ -76,7 +76,10 @@ export class RelatorioController {
 
       res.json(relatorios);
     } catch (error) {
-      res.status(500).json({ error: "Erro ao buscar relatórios" });
+      res.status(400).json({
+        error:
+          error instanceof Error ? error.message : "Erro ao buscar relatórios",
+      });
     }
   }
 
@@ -139,6 +142,27 @@ export class RelatorioController {
       res.status(400).json({
         error:
           error instanceof Error ? error.message : "Erro ao deletar relatório",
+      });
+    }
+  }
+
+  static async getPdfLayout(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const scopedUnidadeId = req.user?.unidadeId;
+      if (scopedUnidadeId == null) {
+        res.status(403).json({ error: "Usuário sem unidade vinculada" });
+        return;
+      }
+
+      const id = parseInt(req.params["id"] ?? "0");
+      const pdfLayout = await relatorioService.getPdfLayout(id, scopedUnidadeId);
+      res.json(pdfLayout);
+    } catch (error) {
+      res.status(400).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro ao preparar layout do PDF",
       });
     }
   }
