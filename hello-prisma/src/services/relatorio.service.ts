@@ -72,6 +72,24 @@ function formatTime(date: Date): string {
   }).format(date);
 }
 
+function formatDuration(start: Date, end: Date): string {
+  const diffMs = end.getTime() - start.getTime();
+  if (diffMs <= 0) {
+    return "00:00";
+  }
+  const totalMinutes = Math.round(diffMs / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function getPeriodo(hora: Date): string {
+  const h = hora.getHours();
+  if (h < 12) return "Manhã";
+  if (h < 18) return "Tarde";
+  return "Noite";
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -79,6 +97,28 @@ function escapeHtml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function sanitizeTipTapHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+="[^"]*"/gi, "")
+    .replace(/\son\w+='[^']*'/gi, "")
+    .replace(/javascript:/gi, "");
+}
+
+function renderServicoHtml(content?: string | null): string {
+  if (!content || content.trim() === "") {
+    return "<p>-</p>";
+  }
+
+  const trimmed = content.trim();
+  const hasHtml = /<[^>]+>/.test(trimmed);
+  if (hasHtml) {
+    return sanitizeTipTapHtml(trimmed);
+  }
+
+  return `<p>${escapeHtml(trimmed).replaceAll("\n", "<br />")}</p>`;
 }
 
 const MODALIDADES_SERVICO = [
@@ -459,29 +499,31 @@ export class RelatorioService {
   }
 
   private buildPdfHtml(relatorio: RelatorioPdfData): string {
-    const tecnicos = relatorio.tecnicos
-      .map((tecnico) => `<li>${escapeHtml(tecnico.nome)}</li>`)
-      .join("");
-    const setores = relatorio.setores
+    const logoUrl = process.env["RELATORIO_LOGO_URL"] ?? "";
+    const tecnicoDesignado =
+      relatorio.tecnicos[0]?.nome ?? relatorio.criadoPor.nome ?? "-";
+    const horariosRows = relatorio.horarios
+      .slice()
+      .sort((a, b) => a.horaChegada.getTime() - b.horaChegada.getTime())
       .map(
-        (setor) => `
+        (horario) => `
           <tr>
-            <td>${escapeHtml(setor.setor.nome)}</td>
-            <td>${escapeHtml(setor.observacao ?? "-")}</td>
+            <td>${getPeriodo(horario.horaChegada)}</td>
+            <td>${formatTime(horario.horaChegada)}</td>
+            <td>${formatTime(horario.horaSaida)}</td>
+            <td>${formatDuration(horario.horaChegada, horario.horaSaida)}</td>
           </tr>
         `,
       )
       .join("");
-    const horarios = relatorio.horarios
-      .map(
-        (horario) =>
-          `${formatTime(horario.horaChegada)} - ${formatTime(horario.horaSaida)}`,
-      )
-      .join(" | ");
-    const checklists = relatorio.checklists
-      .sort((a, b) => a.checklist.indice - b.checklist.indice)
-      .map((item) => `<li>${escapeHtml(item.checklist.nome)}</li>`)
-      .join("");
+    const totalHoras = relatorio.horarios.reduce((acc, horario) => {
+      const diff = Math.max(
+        0,
+        horario.horaSaida.getTime() - horario.horaChegada.getTime(),
+      );
+      return acc + diff;
+    }, 0);
+    const totalHorasFormatado = formatDuration(new Date(0), new Date(totalHoras));
 
     return `
 <!DOCTYPE html>
@@ -490,80 +532,211 @@ export class RelatorioService {
     <meta charset="UTF-8" />
     <title>Relatório ${relatorio.id}</title>
     <style>
-      body { font-family: Arial, sans-serif; color: #1f2937; margin: 0; padding: 24px; }
-      .header { border-bottom: 2px solid #111827; padding-bottom: 12px; margin-bottom: 18px; }
-      .header h1 { margin: 0; font-size: 20px; }
-      .muted { color: #6b7280; font-size: 12px; }
-      .card { border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-      .card h2 { margin: 0 0 8px 0; font-size: 14px; text-transform: uppercase; color: #111827; }
-      .row { margin: 2px 0; font-size: 13px; }
-      table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; vertical-align: top; }
-      th { background-color: #f3f4f6; }
-      ul { margin: 6px 0 0 18px; padding: 0; }
-      .footer { margin-top: 36px; }
-      .assinaturas { display: flex; gap: 24px; margin-top: 24px; }
-      .assinatura { flex: 1; font-size: 12px; text-align: center; }
-      .linha { border-top: 1px solid #111827; margin-bottom: 6px; height: 22px; }
+      * { box-sizing: border-box; }
+      body {
+        font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+        color: #111827;
+        margin: 0;
+        padding: 28px;
+        font-size: 12px;
+      }
+      .document { width: 100%; }
+      .section {
+        border-top: 1px solid #d1d5db;
+        padding-top: 10px;
+        margin-top: 10px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        margin-bottom: 14px;
+      }
+      .logo-box {
+        min-width: 180px;
+        min-height: 62px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .logo-box img {
+        max-width: 180px;
+        max-height: 62px;
+        object-fit: contain;
+      }
+      .logo-fallback {
+        font-size: 22px;
+        font-weight: 700;
+        color: #b91c1c;
+        letter-spacing: 0.5px;
+      }
+      .company {
+        text-align: right;
+        font-size: 11px;
+        line-height: 1.4;
+      }
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        text-transform: uppercase;
+      }
+      .subtitle {
+        margin-top: 4px;
+        color: #4b5563;
+      }
+      .info-grid {
+        margin-top: 10px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 20px;
+      }
+      .info-item {
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 5px;
+      }
+      .label {
+        color: #374151;
+        font-weight: 600;
+        margin-right: 4px;
+      }
+      .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        text-transform: uppercase;
+      }
+      .rich-text {
+        line-height: 1.5;
+      }
+      .rich-text p {
+        margin: 0 0 6px 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        border: 1px solid #d1d5db;
+        padding: 6px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #f9fafb;
+        font-weight: 700;
+      }
+      .table-footer {
+        margin-top: 6px;
+        text-align: right;
+        font-weight: 600;
+      }
+      .legal {
+        margin-top: 14px;
+        font-size: 11px;
+        color: #374151;
+        line-height: 1.5;
+      }
+      .assinaturas {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-top: 16px;
+      }
+      .assinatura {
+        text-align: center;
+      }
+      .linha {
+        border-top: 1px solid #111827;
+        margin: 22px 0 6px 0;
+      }
+      .assinatura-nome {
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
-    <div class="header">
-      <h1>Relatório Técnico de Visita</h1>
-      <div class="muted">Documento gerado em ${formatDateTime(new Date())}</div>
-    </div>
+    <div class="document">
+      <div class="header">
+        <div class="logo-box">
+          ${
+            logoUrl
+              ? `<img src="${escapeHtml(logoUrl)}" alt="Logo Linq" />`
+              : `<div class="logo-fallback">LINQ</div>`
+          }
+        </div>
+        <div class="company">
+          <div><strong>LINQ INFORMÁTICA</strong></div>
+          <div>Rua Geraldo Pereira, 338 - Sala 704</div>
+          <div>Alto da Bronze, Estrela/RS - CEP: 95.880-000</div>
+          <div>Suporte: 51 3720-4462</div>
+          <div>www.linq.com.br</div>
+        </div>
+      </div>
 
-    <div class="card">
-      <h2>Dados gerais</h2>
-      <div class="row"><strong>Relatório:</strong> #${relatorio.id}</div>
-      <div class="row"><strong>Cliente:</strong> ${escapeHtml(relatorio.cliente.nomeFantasia)}</div>
-      <div class="row"><strong>Contato:</strong> ${escapeHtml(relatorio.contato?.nome ?? "-")}</div>
-      <div class="row"><strong>Data da visita:</strong> ${formatDate(relatorio.dataVisita)}</div>
-      <div class="row"><strong>Modalidade:</strong> ${escapeHtml(relatorio.modalidadeServico ?? "-")}</div>
-      <div class="row"><strong>Criado por:</strong> ${escapeHtml(relatorio.criadoPor.nome)}</div>
-    </div>
+      <h1>Relatório de Atendimento Técnico</h1>
+      <div class="subtitle">Relatório Nº ${relatorio.id} • Data: ${formatDate(relatorio.dataVisita)}</div>
 
-    <div class="card">
-      <h2>Técnicos e horários</h2>
-      <div class="row"><strong>Técnicos:</strong></div>
-      <ul>${tecnicos || "<li>-</li>"}</ul>
-      <div class="row"><strong>Horários:</strong> ${escapeHtml(horarios || "-")}</div>
-    </div>
+      <div class="section">
+        <div class="section-title">Informações do Cliente</div>
+        <div class="info-grid">
+          <div class="info-item"><span class="label">Cliente:</span>${escapeHtml(relatorio.cliente.nomeFantasia)}</div>
+          <div class="info-item"><span class="label">Relatório N°:</span>${relatorio.id}</div>
+          <div class="info-item"><span class="label">Data:</span>${formatDate(relatorio.dataVisita)}</div>
+          <div class="info-item"><span class="label">Contato:</span>${escapeHtml(relatorio.contato?.nome ?? "-")}</div>
+          <div class="info-item"><span class="label">Cidade:</span>${escapeHtml(`${relatorio.cliente.cidade}/${relatorio.cliente.estado}`)}</div>
+          <div class="info-item"><span class="label">Modalidade:</span>${escapeHtml(relatorio.modalidadeServico ?? "-")}</div>
+          <div class="info-item"><span class="label">Técnico Designado:</span>${escapeHtml(tecnicoDesignado)}</div>
+          <div class="info-item"><span class="label">Emitido em:</span>${formatDateTime(new Date())}</div>
+        </div>
+      </div>
 
-    <div class="card">
-      <h2>Setores avaliados</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Setor</th>
-            <th>Observação</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${setores || "<tr><td colspan='2'>Sem setores vinculados</td></tr>"}
-        </tbody>
-      </table>
-    </div>
+      <div class="section">
+        <div class="section-title">Detalhamento dos Serviços</div>
+        <div class="rich-text">
+          ${renderServicoHtml(relatorio.observacoes)}
+        </div>
+      </div>
 
-    <div class="card">
-      <h2>Checklist aplicado</h2>
-      <ul>${checklists || "<li>Sem itens vinculados</li>"}</ul>
-    </div>
+      <div class="section">
+        <div class="section-title">Detalhamento de Horários</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Período</th>
+              <th>Início</th>
+              <th>Fim</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              horariosRows ||
+              `<tr><td colspan="4">Sem horários informados</td></tr>`
+            }
+          </tbody>
+        </table>
+        <div class="table-footer">Total de horas: ${totalHorasFormatado}</div>
+      </div>
 
-    <div class="card">
-      <h2>Observações</h2>
-      <div class="row">${escapeHtml(relatorio.observacoes ?? "-")}</div>
-    </div>
+      <div class="legal">
+        A LINQ INFORMÁTICA EIRELI-ME, seus diretores, sócios e funcionários, ficam ISENTOS DE QUAISQUER RESPONSABILIDADES,
+        sejam elas jurídicas, cíveis, penais ou criminais, referentes ao USO DE LICENÇAS DE SOFTWARE pela EMPRESA CONTRATANTE,
+        na sua sede matriz e respectivas filiais.
+      </div>
 
-    <div class="footer">
       <div class="assinaturas">
         <div class="assinatura">
           <div class="linha"></div>
-          Técnico responsável
+          <div class="assinatura-nome">${escapeHtml(tecnicoDesignado)}</div>
+          <div>Técnico Responsável</div>
+          <div>LINQ INFORMÁTICA</div>
         </div>
         <div class="assinatura">
           <div class="linha"></div>
-          Responsável pelo cliente
+          <div class="assinatura-nome">${escapeHtml(relatorio.contato?.nome ?? "Responsável do Cliente")}</div>
+          <div>Responsável pelo Cliente</div>
+          <div>${escapeHtml(relatorio.cliente.nomeFantasia)}</div>
         </div>
       </div>
     </div>
