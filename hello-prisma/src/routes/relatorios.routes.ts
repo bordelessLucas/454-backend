@@ -8,8 +8,8 @@ router.use(authMiddleware);
 
 router.post("/", RelatorioController.create);
 router.get("/", RelatorioController.findAll);
-router.get("/:id/pdf-layout", RelatorioController.getPdfLayout);
-router.get("/:id/pdf", RelatorioController.getPdfLayout);
+router.get("/:id/pdf-layout", RelatorioController.getRelatorioParaPdf);
+router.get("/:id/pdf", RelatorioController.getRelatorioParaPdf);
 router.get("/:id", RelatorioController.findById);
 router.put("/:id", RelatorioController.update);
 router.delete("/:id", RelatorioController.delete);

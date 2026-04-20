@@ -146,7 +146,7 @@ export class RelatorioController {
     }
   }
 
-  static async getPdfLayout(req: AuthRequest, res: Response): Promise<void> {
+  static async getRelatorioParaPdf(req: AuthRequest, res: Response): Promise<void> {
     try {
       const scopedUnidadeId = req.user?.unidadeId;
       if (scopedUnidadeId == null) {
@@ -155,20 +155,22 @@ export class RelatorioController {
       }
 
       const id = parseInt(req.params["id"] ?? "0");
-      console.log("Iniciando geração de PDF para o relatório:", id);
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
 
-      const pdfLayout = await relatorioService.getPdfLayout(id, scopedUnidadeId);
-      res.json(pdfLayout);
+      const relatorio = await relatorioService.getRelatorioParaPdf(
+        id,
+        scopedUnidadeId,
+      );
+      res.json(relatorio);
     } catch (error) {
-      console.error("Erro detalhado na geração do PDF:", error);
+      console.error("Erro ao carregar relatório para o frontend:", error);
       res.status(500).json({
         error:
           error instanceof Error
             ? error.message
-            : "Erro ao preparar layout do PDF",
+            : "Erro ao carregar relatório",
       });
     }
   }
