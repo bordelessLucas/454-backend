@@ -40,15 +40,29 @@ export class AuthService {
       unidadeId: number | null;
     };
   }> {
-    const user = await this.prisma.user.findUnique({
-      where: { username: data.username },
+    const email =
+      (typeof data.email === "string" ? data.email.trim() : "") ||
+      (typeof data.username === "string" ? data.username.trim() : "");
+
+    if (!email) {
+      throw new Error("Email não fornecido");
+    }
+
+    if (data.password == null || String(data.password).trim() === "") {
+      throw new Error("Senha não fornecida");
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ email }, { username: email }],
+      },
     });
 
     if (!user || !user.ativo) {
       throw new Error("Credenciais inválidas");
     }
 
-    const valid = await bcrypt.compare(data.password, user.password);
+    const valid = await bcrypt.compare(String(data.password), user.password);
 
     if (!valid) {
       throw new Error("Credenciais inválidas");

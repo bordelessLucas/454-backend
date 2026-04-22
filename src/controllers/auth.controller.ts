@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { AuthService } from "../services/auth.service.js";
 import { prisma } from "../lib/prisma.js";
 import type { LoginDTO, CreateUserDTO, UpdateUserDTO } from "../types/dtos.js";
@@ -8,12 +9,43 @@ const authService = new AuthService(prisma);
 export class AuthController {
   static async login(req: Request, res: Response): Promise<void> {
     try {
+      console.log("Dados recebidos no login:", req.body);
       const data: LoginDTO = req.body;
       const result = await authService.login(data);
       res.json(result);
     } catch (error) {
+      console.error("Erro no login:", error);
+
+      if (error instanceof Prisma.PrismaClientValidationError) {
+        res.status(400).json({
+          error: "Dados de login incompletos ou inválidos.",
+        });
+        return;
+      }
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        res.status(500).json({
+          error: "Erro ao validar credenciais. Tente novamente.",
+        });
+        return;
+      }
+
+      if (error instanceof Error) {
+        const known = [
+          "Credenciais inválidas",
+          "Email não fornecido",
+          "Senha não fornecida",
+        ];
+        if (known.includes(error.message)) {
+          const status =
+            error.message === "Credenciais inválidas" ? 401 : 400;
+          res.status(status).json({ error: error.message });
+          return;
+        }
+      }
+
       res.status(401).json({
-        error: error instanceof Error ? error.message : "Erro ao fazer login",
+        error: "Não foi possível fazer login. Tente novamente.",
       });
     }
   }
