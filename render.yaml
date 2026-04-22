@@ -1,5 +1,5 @@
 services:
-  # Aplicação Web
+  # Aplicação Web Backend
   - type: web
     name: 454-backend
     runtime: docker
@@ -14,9 +14,9 @@ services:
       - key: PORT
         value: 3000
       - key: DATABASE_URL
-        scope: build
+        [cite_start]sync: false 
       - key: JWT_SECRET
-        scope: build
+        [cite_start]sync: false 
       - key: CORS_ORIGIN
         value: https://seu-frontend.onrender.com
     autoDeploy: true
