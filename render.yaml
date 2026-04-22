@@ -5,7 +5,7 @@ services:
     runtime: docker
     rootDir: hello-prisma
     dockerfilePath: ./Dockerfile
-    region: sp-são-paulo
+    region: oregon
     plan: free
     healthCheckPath: /health
     envVars:
