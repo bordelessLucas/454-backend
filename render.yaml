@@ -14,9 +14,9 @@ services:
       - key: PORT
         value: 3000
       - key: DATABASE_URL
-        [cite_start]sync: false 
+        sync: false
       - key: JWT_SECRET
-        [cite_start]sync: false 
+        sync: false
       - key: CORS_ORIGIN
         value: https://seu-frontend.onrender.com
     autoDeploy: true
