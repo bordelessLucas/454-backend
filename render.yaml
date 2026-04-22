@@ -3,7 +3,6 @@ services:
   - type: web
     name: 454-backend
     runtime: docker
-    rootDir: hello-prisma
     dockerfilePath: ./Dockerfile
     region: oregon
     plan: free
