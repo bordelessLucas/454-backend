@@ -54,6 +54,8 @@ export interface CreateClienteDTO {
   telefone?: string;
   email?: string;
   ramoAtividadeId: number;
+  /** Obrigatório quando o usuário é ADMIN (token sem unidade): define a organização do cliente. */
+  unidadeId?: number;
   contato: CreateContatoDTO;
   contrato: CreateContratoDTO;
 }

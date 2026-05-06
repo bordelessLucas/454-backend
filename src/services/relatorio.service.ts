@@ -137,7 +137,7 @@ export class RelatorioService {
   async create(
     data: CreateRelatorioInput,
     criadoPorId: number,
-    scopedUnidadeId: number,
+    scopedUnidadeId: number | null,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const modalidadeServico = resolverModalidadeServico(data);
@@ -150,7 +150,10 @@ export class RelatorioService {
       }
 
       const cliente = await tx.cliente.findFirst({
-        where: { id: data.clienteId, unidadeId: scopedUnidadeId },
+        where:
+          scopedUnidadeId === null
+            ? { id: data.clienteId }
+            : { id: data.clienteId, unidadeId: scopedUnidadeId },
         select: { id: true },
       });
 
@@ -287,10 +290,14 @@ export class RelatorioService {
     });
   }
 
-  async findAll(filters: RelatorioFilters | undefined, scopedUnidadeId: number) {
-    const where: Prisma.RelatorioWhereInput = {
-      cliente: { unidadeId: scopedUnidadeId },
-    };
+  async findAll(
+    filters: RelatorioFilters | undefined,
+    scopedUnidadeId: number | null,
+  ) {
+    const where: Prisma.RelatorioWhereInput = {};
+    if (scopedUnidadeId !== null) {
+      where.cliente = { unidadeId: scopedUnidadeId };
+    }
 
     if (filters?.clienteId !== undefined) {
       where.clienteId = filters.clienteId;
@@ -350,9 +357,12 @@ export class RelatorioService {
     });
   }
 
-  async findById(id: number, scopedUnidadeId: number) {
+  async findById(id: number, scopedUnidadeId: number | null) {
     return this.prisma.relatorio.findFirst({
-      where: { id, cliente: { unidadeId: scopedUnidadeId } },
+      where:
+        scopedUnidadeId === null
+          ? { id }
+          : { id, cliente: { unidadeId: scopedUnidadeId } },
       include: {
         cliente: true,
         contato: true,
@@ -379,9 +389,12 @@ export class RelatorioService {
     });
   }
 
-  async getRelatorioParaPdf(id: number, scopedUnidadeId: number) {
+  async getRelatorioParaPdf(id: number, scopedUnidadeId: number | null) {
     const relatorio = await this.prisma.relatorio.findFirst({
-      where: { id, cliente: { unidadeId: scopedUnidadeId } },
+      where:
+        scopedUnidadeId === null
+          ? { id }
+          : { id, cliente: { unidadeId: scopedUnidadeId } },
       include: RELATORIO_INCLUDE_COMPLETO,
     });
 
@@ -399,10 +412,17 @@ export class RelatorioService {
     return { ...relatorio, impresso: true };
   }
 
-  async update(id: number, data: UpdateRelatorioInput, scopedUnidadeId: number) {
+  async update(
+    id: number,
+    data: UpdateRelatorioInput,
+    scopedUnidadeId: number | null,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.relatorio.findFirst({
-        where: { id, cliente: { unidadeId: scopedUnidadeId } },
+        where:
+          scopedUnidadeId === null
+            ? { id }
+            : { id, cliente: { unidadeId: scopedUnidadeId } },
         select: { id: true },
       });
 
@@ -414,7 +434,10 @@ export class RelatorioService {
 
       if (data.clienteId !== undefined) {
         const targetCliente = await tx.cliente.findFirst({
-          where: { id: data.clienteId, unidadeId: scopedUnidadeId },
+          where:
+            scopedUnidadeId === null
+              ? { id: data.clienteId }
+              : { id: data.clienteId, unidadeId: scopedUnidadeId },
           select: { id: true },
         });
 
@@ -569,9 +592,12 @@ export class RelatorioService {
     });
   }
 
-  async delete(id: number, scopedUnidadeId: number) {
+  async delete(id: number, scopedUnidadeId: number | null) {
     const deleted = await this.prisma.relatorio.deleteMany({
-      where: { id, cliente: { unidadeId: scopedUnidadeId } },
+      where:
+        scopedUnidadeId === null
+          ? { id }
+          : { id, cliente: { unidadeId: scopedUnidadeId } },
     });
 
     if (deleted.count === 0) {

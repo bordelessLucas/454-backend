@@ -7,17 +7,19 @@ import type {
   RelatorioFilters,
 } from "../types/dtos.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
+import { resolveScopedUnidadeIdForRequest } from "../lib/scoped-unidade.js";
 
 const relatorioService = new RelatorioService(prisma);
 
 export class RelatorioController {
   static async create(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const data: CreateRelatorioDTO = req.body;
       const criadoPorId = req.user?.id ?? 0;
@@ -37,11 +39,12 @@ export class RelatorioController {
 
   static async findAll(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const filters: RelatorioFilters = {};
 
@@ -85,11 +88,12 @@ export class RelatorioController {
 
   static async findById(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const id = parseInt(req.params["id"] ?? "0");
       const relatorio = await relatorioService.findById(id, scopedUnidadeId);
@@ -107,11 +111,12 @@ export class RelatorioController {
 
   static async update(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const id = parseInt(req.params["id"] ?? "0");
       const data: UpdateRelatorioDTO = req.body;
@@ -129,11 +134,12 @@ export class RelatorioController {
 
   static async delete(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const id = parseInt(req.params["id"] ?? "0");
       await relatorioService.delete(id, scopedUnidadeId);
@@ -148,11 +154,12 @@ export class RelatorioController {
 
   static async getRelatorioParaPdf(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const id = parseInt(req.params["id"] ?? "0");
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");

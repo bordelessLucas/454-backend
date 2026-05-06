@@ -7,17 +7,19 @@ import type {
   ClienteFilters,
 } from "../types/dtos.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
+import { resolveScopedUnidadeIdForRequest } from "../lib/scoped-unidade.js";
 
 const clienteService = new ClienteService(prisma);
 
 export class ClienteController {
   static async create(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const data: CreateClienteDTO = req.body;
       const cliente = await clienteService.create(data, scopedUnidadeId);
@@ -31,11 +33,12 @@ export class ClienteController {
 
   static async findAll(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const filters: ClienteFilters = {};
 
@@ -67,11 +70,12 @@ export class ClienteController {
 
   static async findById(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const id = parseInt(req.params["id"] ?? "0");
       const cliente = await clienteService.findById(id, scopedUnidadeId);
@@ -89,11 +93,12 @@ export class ClienteController {
 
   static async update(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const id = parseInt(req.params["id"] ?? "0");
       const data: UpdateClienteDTO = req.body;
@@ -109,11 +114,12 @@ export class ClienteController {
 
   static async delete(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const id = parseInt(req.params["id"] ?? "0");
       await clienteService.delete(id, scopedUnidadeId);
@@ -128,11 +134,12 @@ export class ClienteController {
 
   static async createContato(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const clienteId = parseInt(req.params["id"] ?? "0");
       const data = req.body;
@@ -151,11 +158,12 @@ export class ClienteController {
 
   static async updateContato(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const contatoId = parseInt(req.params["contatoId"] ?? "0");
       const data = req.body;
@@ -175,11 +183,12 @@ export class ClienteController {
 
   static async deleteContato(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const scopedUnidadeId = req.user?.unidadeId;
-      if (scopedUnidadeId == null) {
+      const scope = resolveScopedUnidadeIdForRequest(req.user);
+      if (!scope.ok) {
         res.status(403).json({ error: "Usuário sem unidade vinculada" });
         return;
       }
+      const { scopedUnidadeId } = scope;
 
       const contatoId = parseInt(req.params["contatoId"] ?? "0");
       await clienteService.deleteContato(contatoId, scopedUnidadeId);

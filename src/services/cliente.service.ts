@@ -8,15 +8,21 @@ import type {
 export class ClienteService {
   constructor(private prisma: PrismaClient) {}
 
-  async create(data: CreateClienteDTO, scopedUnidadeId: number) {
-    const { contato, contrato, ...clienteData } = data;
+  async create(data: CreateClienteDTO, scopedUnidadeId: number | null) {
+    const { contato, contrato, unidadeId: dtoUnidadeId, ...clienteData } = data;
+    const resolvedUnidade =
+      scopedUnidadeId ??
+      (typeof dtoUnidadeId === "number" && Number.isFinite(dtoUnidadeId)
+        ? dtoUnidadeId
+        : 1);
+    const unidadeId = Number(resolvedUnidade);
 
     return this.prisma.$transaction(async (tx) => {
       // Criar cliente
       const cliente = await tx.cliente.create({
         data: {
           ...clienteData,
-          unidadeId: scopedUnidadeId,
+          unidadeId,
         },
         include: {
           ramoAtividade: true,
@@ -51,8 +57,11 @@ export class ClienteService {
     });
   }
 
-  async findAll(scopedUnidadeId: number, filters?: ClienteFilters) {
-    const where: Record<string, unknown> = { unidadeId: scopedUnidadeId };
+  async findAll(scopedUnidadeId: number | null, filters?: ClienteFilters) {
+    const where: Record<string, unknown> = {};
+    if (scopedUnidadeId !== null) {
+      where.unidadeId = scopedUnidadeId;
+    }
 
     if (filters?.nomeFantasia) {
       where.nomeFantasia = {
@@ -80,9 +89,10 @@ export class ClienteService {
     });
   }
 
-  async findById(id: number, scopedUnidadeId: number) {
+  async findById(id: number, scopedUnidadeId: number | null) {
     return this.prisma.cliente.findFirst({
-      where: { id, unidadeId: scopedUnidadeId },
+      where:
+        scopedUnidadeId === null ? { id } : { id, unidadeId: scopedUnidadeId },
       include: {
         ramoAtividade: true,
         contatos: true,
@@ -91,12 +101,15 @@ export class ClienteService {
     });
   }
 
-  async update(id: number, data: UpdateClienteDTO, scopedUnidadeId: number) {
+  async update(id: number, data: UpdateClienteDTO, scopedUnidadeId: number | null) {
     const { contato, contrato, ...clienteData } = data;
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.cliente.findFirst({
-        where: { id, unidadeId: scopedUnidadeId },
+        where:
+          scopedUnidadeId === null
+            ? { id }
+            : { id, unidadeId: scopedUnidadeId },
         select: { id: true },
       });
 
@@ -150,9 +163,12 @@ export class ClienteService {
     });
   }
 
-  async delete(id: number, scopedUnidadeId: number) {
+  async delete(id: number, scopedUnidadeId: number | null) {
     const existing = await this.prisma.cliente.findFirst({
-      where: { id, unidadeId: scopedUnidadeId },
+      where:
+        scopedUnidadeId === null
+          ? { id }
+          : { id, unidadeId: scopedUnidadeId },
       select: { id: true },
     });
 
@@ -167,7 +183,7 @@ export class ClienteService {
 
   async createContato(
     clienteId: number,
-    scopedUnidadeId: number,
+    scopedUnidadeId: number | null,
     data: {
       nome: string;
       cargo?: string;
@@ -177,7 +193,10 @@ export class ClienteService {
     },
   ) {
     const cliente = await this.prisma.cliente.findFirst({
-      where: { id: clienteId, unidadeId: scopedUnidadeId },
+      where:
+        scopedUnidadeId === null
+          ? { id: clienteId }
+          : { id: clienteId, unidadeId: scopedUnidadeId },
       select: { id: true },
     });
 
@@ -195,7 +214,7 @@ export class ClienteService {
 
   async updateContato(
     id: number,
-    scopedUnidadeId: number,
+    scopedUnidadeId: number | null,
     data: {
       nome?: string;
       cargo?: string;
@@ -205,7 +224,10 @@ export class ClienteService {
     },
   ) {
     const contato = await this.prisma.clienteContato.findFirst({
-      where: { id, cliente: { unidadeId: scopedUnidadeId } },
+      where:
+        scopedUnidadeId === null
+          ? { id }
+          : { id, cliente: { unidadeId: scopedUnidadeId } },
       select: { id: true },
     });
 
@@ -219,9 +241,12 @@ export class ClienteService {
     });
   }
 
-  async deleteContato(id: number, scopedUnidadeId: number) {
+  async deleteContato(id: number, scopedUnidadeId: number | null) {
     const contato = await this.prisma.clienteContato.findFirst({
-      where: { id, cliente: { unidadeId: scopedUnidadeId } },
+      where:
+        scopedUnidadeId === null
+          ? { id }
+          : { id, cliente: { unidadeId: scopedUnidadeId } },
       select: { id: true },
     });
 
