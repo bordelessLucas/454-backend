@@ -7,6 +7,21 @@ const JWT_SECRET =
   process.env["JWT_SECRET"] ?? "your-secret-key-change-in-production";
 const SALT_ROUNDS = 10;
 
+/** Latência mínima na falha de login para reduzir enumeração por tempo. */
+const CREDENTIAL_FAILURE_MIN_LATENCY_MS = 500;
+
+async function delayUntilMinimumElapsed(
+  startedAtMs: number,
+  minimumMs: number,
+): Promise<void> {
+  const remaining = minimumMs - (Date.now() - startedAtMs);
+  if (remaining > 0) {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, remaining);
+    });
+  }
+}
+
 export class AuthService {
   constructor(private prisma: PrismaClient) {}
 
@@ -27,6 +42,45 @@ export class AuthService {
     }
 
     return cliente.unidadeId;
+  }
+
+  /**
+   * TECNICO: unidade via cliente OU unidadeId explícito (obrigatório um dos dois).
+   * Se ambos forem enviados, devem ser coerentes.
+   */
+  private async resolveUnidadeIdForTecnicoOnCreate(
+    data: CreateUserDTO,
+  ): Promise<number> {
+    if (data.clienteId !== undefined) {
+      const fromCliente = await this.resolveUnidadeIdFromCliente(
+        data.clienteId,
+      );
+      if (fromCliente == null) {
+        throw new Error("Cliente não encontrado");
+      }
+      if (
+        data.unidadeId !== undefined &&
+        data.unidadeId !== fromCliente
+      ) {
+        throw new Error(
+          "unidadeId informado não corresponde à unidade do cliente",
+        );
+      }
+      return fromCliente;
+    }
+
+    if (
+      data.unidadeId === undefined ||
+      typeof data.unidadeId !== "number" ||
+      !Number.isInteger(data.unidadeId) ||
+      data.unidadeId < 1
+    ) {
+      throw new Error(
+        "Técnico deve ter unidadeId no cadastro ou estar vinculado a um cliente",
+      );
+    }
+
+    return data.unidadeId;
   }
 
   async login(data: LoginDTO): Promise<{
@@ -52,6 +106,8 @@ export class AuthService {
       throw new Error("Senha não fornecida");
     }
 
+    const credentialCheckStartedAt = Date.now();
+
     const user = await this.prisma.user.findFirst({
       where: {
         OR: [{ email }, { username: email }],
@@ -59,12 +115,20 @@ export class AuthService {
     });
 
     if (!user || !user.ativo) {
+      await delayUntilMinimumElapsed(
+        credentialCheckStartedAt,
+        CREDENTIAL_FAILURE_MIN_LATENCY_MS,
+      );
       throw new Error("Credenciais inválidas");
     }
 
     const valid = await bcrypt.compare(String(data.password), user.password);
 
     if (!valid) {
+      await delayUntilMinimumElapsed(
+        credentialCheckStartedAt,
+        CREDENTIAL_FAILURE_MIN_LATENCY_MS,
+      );
       throw new Error("Credenciais inválidas");
     }
 
@@ -108,7 +172,10 @@ export class AuthService {
       userData.clienteId = data.clienteId;
     }
 
-    userData.unidadeId = await this.resolveUnidadeIdFromCliente(data.clienteId);
+    userData.unidadeId =
+      data.role === "TECNICO"
+        ? await this.resolveUnidadeIdForTecnicoOnCreate(data)
+        : await this.resolveUnidadeIdFromCliente(data.clienteId);
 
     return this.prisma.user.create({
       data: userData,
@@ -151,6 +218,7 @@ export class AuthService {
         email: true,
         role: true,
         clienteId: true,
+        unidadeId: true,
         ativo: true,
         createdAt: true,
       },
@@ -175,10 +243,52 @@ export class AuthService {
   }
 
   async updateUser(id: number, data: UpdateUserDTO) {
-    const updateData: Prisma.UserUncheckedUpdateInput = { ...data };
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, clienteId: true, unidadeId: true },
+    });
+
+    if (!existing) {
+      throw new Error("Usuário não encontrado");
+    }
+
+    let nextUnidadeId: number | null | undefined;
 
     if (data.clienteId !== undefined) {
-      updateData.unidadeId = await this.resolveUnidadeIdFromCliente(data.clienteId);
+      nextUnidadeId = await this.resolveUnidadeIdFromCliente(data.clienteId);
+    } else if (data.unidadeId !== undefined) {
+      nextUnidadeId = data.unidadeId;
+    }
+
+    const updateData: Prisma.UserUncheckedUpdateInput = {
+      ...(data.nome !== undefined ? { nome: data.nome } : {}),
+      ...(data.email !== undefined ? { email: data.email } : {}),
+      ...(data.role !== undefined ? { role: data.role } : {}),
+      ...(data.clienteId !== undefined ? { clienteId: data.clienteId } : {}),
+      ...(data.ativo !== undefined ? { ativo: data.ativo } : {}),
+      ...(nextUnidadeId !== undefined ? { unidadeId: nextUnidadeId } : {}),
+    };
+
+    const nextRole = data.role ?? existing.role;
+    const effectiveUnidadeId =
+      nextUnidadeId !== undefined ? nextUnidadeId : existing.unidadeId;
+
+    if (nextRole === "TECNICO" && effectiveUnidadeId == null) {
+      throw new Error(
+        "Técnico deve ter unidade vinculada (informe clienteId ou unidadeId)",
+      );
+    }
+
+    if (
+      nextRole === "TECNICO" &&
+      data.clienteId !== undefined &&
+      data.unidadeId !== undefined &&
+      nextUnidadeId !== undefined &&
+      data.unidadeId !== nextUnidadeId
+    ) {
+      throw new Error(
+        "unidadeId informado não corresponde à unidade do cliente",
+      );
     }
 
     return this.prisma.user.update({

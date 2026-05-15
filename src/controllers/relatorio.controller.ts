@@ -1,5 +1,8 @@
 import type { Response } from "express";
-import { RelatorioService } from "../services/relatorio.service.js";
+import {
+  RelatorioService,
+  RelatorioForbiddenError,
+} from "../services/relatorio.service.js";
 import { prisma } from "../lib/prisma.js";
 import type {
   CreateRelatorioDTO,
@@ -75,7 +78,11 @@ export class RelatorioController {
         filters.impresso = false;
       }
 
-      const relatorios = await relatorioService.findAll(filters, scopedUnidadeId);
+      const relatorios = await relatorioService.findAll(
+        filters,
+        scopedUnidadeId,
+        req.user?.role,
+      );
 
       res.json(relatorios);
     } catch (error) {
@@ -119,10 +126,25 @@ export class RelatorioController {
       const { scopedUnidadeId } = scope;
 
       const id = parseInt(req.params["id"] ?? "0");
+      const userId = req.user?.id;
+      if (userId === undefined) {
+        res.status(401).json({ error: "Não autenticado" });
+        return;
+      }
       const data: UpdateRelatorioDTO = req.body;
-      const relatorio = await relatorioService.update(id, data, scopedUnidadeId);
+      const relatorio = await relatorioService.update(
+        id,
+        data,
+        scopedUnidadeId,
+        req.user?.role,
+        userId,
+      );
       res.json(relatorio);
     } catch (error) {
+      if (error instanceof RelatorioForbiddenError) {
+        res.status(403).json({ error: error.message });
+        return;
+      }
       res.status(400).json({
         error:
           error instanceof Error
@@ -142,9 +164,23 @@ export class RelatorioController {
       const { scopedUnidadeId } = scope;
 
       const id = parseInt(req.params["id"] ?? "0");
-      await relatorioService.delete(id, scopedUnidadeId);
+      const userId = req.user?.id;
+      if (userId === undefined) {
+        res.status(401).json({ error: "Não autenticado" });
+        return;
+      }
+      await relatorioService.delete(
+        id,
+        scopedUnidadeId,
+        req.user?.role,
+        userId,
+      );
       res.status(204).send();
     } catch (error) {
+      if (error instanceof RelatorioForbiddenError) {
+        res.status(403).json({ error: error.message });
+        return;
+      }
       res.status(400).json({
         error:
           error instanceof Error ? error.message : "Erro ao deletar relatório",

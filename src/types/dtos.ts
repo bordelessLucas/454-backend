@@ -11,6 +11,8 @@ export interface CreateUserDTO {
   email: string;
   role: "ADMIN" | "TECNICO";
   clienteId?: number;
+  /** Obrigatório para role TECNICO quando não houver clienteId — identifica a unidade do técnico. */
+  unidadeId?: number;
 }
 
 export interface UpdateUserDTO {
@@ -18,6 +20,8 @@ export interface UpdateUserDTO {
   email?: string;
   role?: "ADMIN" | "TECNICO";
   clienteId?: number;
+  /** Quando não se altera clienteId, permite ajustar a unidade do técnico diretamente. */
+  unidadeId?: number;
   ativo?: boolean;
 }
 

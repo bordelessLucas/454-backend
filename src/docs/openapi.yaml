@@ -102,6 +102,11 @@ components:
         email: { type: string, format: email }
         role: { type: string, enum: [ADMIN, TECNICO] }
         clienteId: { type: integer, nullable: true }
+        unidadeId:
+          type: integer
+          description: >
+            Obrigatório para TECNICO quando clienteId não for enviado.
+            Se clienteId e unidadeId forem enviados, devem coincidir com a unidade do cliente.
 
     UpdateUserRequest:
       type: object
@@ -110,6 +115,11 @@ components:
         email: { type: string, format: email }
         role: { type: string, enum: [ADMIN, TECNICO] }
         clienteId: { type: integer, nullable: true }
+        unidadeId:
+          type: integer
+          description: >
+            Altera a unidade do usuário quando clienteId não é enviado no mesmo request.
+            TECNICO deve permanecer com unidade vinculada.
         ativo: { type: boolean }
 
     ChangePasswordRequest:
@@ -826,8 +836,9 @@ paths:
       tags: [Relatórios]
       summary: Listar relatórios
       description: |
-        Isolado por organização: retorna apenas relatórios da `unidadeId` presente no token JWT.
-        Filtros opcionais: `criadoPorId`, `dataInicio`, `dataFim`, `impresso` (`true`/`false`).
+        Isolado por organização: retorna apenas relatórios cuja empresa (`cliente`) pertence à `unidadeId` do token JWT.
+        Filtros opcionais: `clienteId`, `dataInicio`, `dataFim`, `impresso` (`true`/`false`).
+        O filtro `criadoPorId` aplica-se somente quando o usuário é **ADMIN** (técnicos da mesma unidade veem todos os relatórios da unidade).
       security:
         - bearerAuth: []
       parameters:
@@ -837,6 +848,7 @@ paths:
         - name: criadoPorId
           in: query
           schema: { type: integer }
+          description: Somente ADMIN — filtra por criador do relatório. Ignorado para role TECNICO.
         - name: dataInicio
           in: query
           schema: { type: string, format: date }
@@ -902,6 +914,9 @@ paths:
     put:
       tags: [Relatórios]
       summary: Atualizar relatório
+      description: |
+        **TECNICO:** só pode atualizar relatórios em que é o criador (`criadoPorId`).
+        **ADMIN:** atualiza relatórios no escopo de unidade ou global conforme token.
       security:
         - bearerAuth: []
       requestBody:
@@ -912,6 +927,12 @@ paths:
       responses:
         "200":
           description: Atualizado
+        "403":
+          description: Técnico tentando editar relatório de outro usuário
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
         "400":
           content:
             application/json:
@@ -920,11 +941,20 @@ paths:
     delete:
       tags: [Relatórios]
       summary: Remover relatório
+      description: |
+        **TECNICO:** só pode excluir relatórios que criou.
+        **ADMIN:** remove no escopo permitido pelo token.
       security:
         - bearerAuth: []
       responses:
         "204":
           description: Removido
+        "403":
+          description: Técnico tentando excluir relatório de outro usuário
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
         "400":
           content:
             application/json:

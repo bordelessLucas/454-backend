@@ -47,6 +47,7 @@ async function main() {
         nome: "Tecnico",
         email: "tecnico@example.com",
         role: "TECNICO",
+        unidadeId: 1,
       },
     ],
   });

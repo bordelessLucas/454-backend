@@ -131,8 +131,30 @@ const RELATORIO_INCLUDE_COMPLETO = {
   },
 } satisfies Prisma.RelatorioInclude;
 
+export class RelatorioForbiddenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RelatorioForbiddenError";
+  }
+}
+
 export class RelatorioService {
   constructor(private prisma: PrismaClient) {}
+
+  private ensureTecnicoPodeAlterarOuExcluir(
+    requesterRole: string | undefined,
+    requesterUserId: number,
+    criadoPorId: number,
+    acao: "atualizar" | "excluir",
+  ): void {
+    if (requesterRole === "TECNICO" && criadoPorId !== requesterUserId) {
+      throw new RelatorioForbiddenError(
+        acao === "atualizar"
+          ? "Somente quem criou o relatório pode editá-lo"
+          : "Somente quem criou o relatório pode excluí-lo",
+      );
+    }
+  }
 
   async create(
     data: CreateRelatorioInput,
@@ -290,9 +312,14 @@ export class RelatorioService {
     });
   }
 
+  /**
+   * Lista relatórios da unidade (escopo). Para `TECNICO`, o filtro `criadoPorId` da query
+   * é ignorado — vê todos da unidade; edição/exclusão ficam restritas ao autor.
+   */
   async findAll(
     filters: RelatorioFilters | undefined,
     scopedUnidadeId: number | null,
+    viewerRole?: string,
   ) {
     const where: Prisma.RelatorioWhereInput = {};
     if (scopedUnidadeId !== null) {
@@ -303,7 +330,10 @@ export class RelatorioService {
       where.clienteId = filters.clienteId;
     }
 
-    if (filters?.criadoPorId !== undefined) {
+    if (
+      filters?.criadoPorId !== undefined &&
+      viewerRole !== "TECNICO"
+    ) {
       where.criadoPorId = filters.criadoPorId;
     }
 
@@ -416,6 +446,8 @@ export class RelatorioService {
     id: number,
     data: UpdateRelatorioInput,
     scopedUnidadeId: number | null,
+    requesterRole: string | undefined,
+    requesterUserId: number,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.relatorio.findFirst({
@@ -423,12 +455,19 @@ export class RelatorioService {
           scopedUnidadeId === null
             ? { id }
             : { id, cliente: { unidadeId: scopedUnidadeId } },
-        select: { id: true },
+        select: { id: true, criadoPorId: true },
       });
 
       if (!existing) {
         throw new Error("Relatório não encontrado");
       }
+
+      this.ensureTecnicoPodeAlterarOuExcluir(
+        requesterRole,
+        requesterUserId,
+        existing.criadoPorId,
+        "atualizar",
+      );
 
       const updateData: Prisma.RelatorioUncheckedUpdateInput = {};
 
@@ -592,16 +631,35 @@ export class RelatorioService {
     });
   }
 
-  async delete(id: number, scopedUnidadeId: number | null) {
-    const deleted = await this.prisma.relatorio.deleteMany({
-      where:
-        scopedUnidadeId === null
-          ? { id }
-          : { id, cliente: { unidadeId: scopedUnidadeId } },
+  async delete(
+    id: number,
+    scopedUnidadeId: number | null,
+    requesterRole: string | undefined,
+    requesterUserId: number,
+  ) {
+    const scopedWhere: Prisma.RelatorioWhereInput =
+      scopedUnidadeId === null
+        ? { id }
+        : { id, cliente: { unidadeId: scopedUnidadeId } };
+
+    const registro = await this.prisma.relatorio.findFirst({
+      where: scopedWhere,
+      select: { id: true, criadoPorId: true },
     });
 
-    if (deleted.count === 0) {
+    if (!registro) {
       throw new Error("Relatório não encontrado");
     }
+
+    this.ensureTecnicoPodeAlterarOuExcluir(
+      requesterRole,
+      requesterUserId,
+      registro.criadoPorId,
+      "excluir",
+    );
+
+    await this.prisma.relatorio.delete({
+      where: { id },
+    });
   }
 }
